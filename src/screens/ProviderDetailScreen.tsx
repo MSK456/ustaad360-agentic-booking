@@ -159,9 +159,29 @@ export const ProviderDetailScreen: React.FC = () => {
       <Text style={styles.sectionLabel}>Available Slots</Text>
       <View style={styles.slotsRow}>
         {provider.availableSlots.length > 0
-          ? provider.availableSlots.map(slot => (
-              <View key={slot} style={styles.slotChip}><Text style={styles.slotText}>{slot}</Text></View>
-            ))
+          ? provider.availableSlots.map((slot, idx) => {
+              // slot is a TimeSlot object: { date, startTime, endTime, isBooked }
+              const slotKey = typeof slot === 'string'
+                ? `slot-${idx}-${slot}`
+                : `slot-${idx}-${slot.date}-${slot.startTime}`;
+              const slotLabel = typeof slot === 'string'
+                ? slot
+                : `${slot.date} • ${slot.startTime} – ${slot.endTime}`;
+              const isBooked = typeof slot === 'object' && slot.isBooked;
+              return (
+                <View
+                  key={slotKey}
+                  style={[styles.slotChip, isBooked && styles.slotChipBooked]}
+                >
+                  <Text style={[styles.slotText, isBooked && styles.slotTextBooked]}>
+                    {slotLabel}
+                  </Text>
+                  {isBooked && (
+                    <Text style={styles.slotBookedBadge}>Booked</Text>
+                  )}
+                </View>
+              );
+            })
           : <Text style={styles.noSlots}>No slots available today</Text>
         }
       </View>
@@ -283,6 +303,9 @@ const styles = StyleSheet.create({
   slotsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: Spacing.md },
   slotChip: { backgroundColor: Colors.primary + '18', borderRadius: Radius.sm, paddingHorizontal: Spacing.sm, paddingVertical: 4, borderWidth: 1, borderColor: Colors.primary + '44' },
   slotText: { ...Typography.bodySm, color: Colors.primary },
+  slotChipBooked: { backgroundColor: Colors.cardBorder + '55', borderColor: Colors.textDisabled },
+  slotTextBooked: { color: Colors.textDisabled, textDecorationLine: 'line-through' },
+  slotBookedBadge: { fontSize: 9, color: Colors.textDisabled, fontWeight: '700', marginTop: 1 },
   noSlots: { ...Typography.bodySm, color: Colors.textMuted },
   scoreCard: { backgroundColor: Colors.card, borderRadius: Radius.lg, padding: Spacing.base, borderWidth: 1, borderColor: Colors.cardBorder, gap: Spacing.sm, marginBottom: Spacing.md },
   scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
