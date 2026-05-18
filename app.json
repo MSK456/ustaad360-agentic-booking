@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "Ustaad360",
+    "slug": "ustaad360",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.ustaad360.app"
+    },
+    "android": {
+      "package": "com.ustaad360.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#08111F"
+      }
+    }
+  }
+}
