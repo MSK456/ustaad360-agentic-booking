@@ -14,7 +14,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export const ProviderListScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
-  const { result } = useAgentStore();
+  const { result, selectProvider } = useAgentStore();
   const providers = result?.rankedProviders ?? [];
   const count = providers.length > 0 ? providers.length : MOCK_PROVIDERS.length;
 
@@ -43,8 +43,14 @@ export const ProviderListScreen: React.FC = () => {
           key={rp.provider.id}
           rankedProvider={rp}
           rank={i + 1}
-          onPress={() => navigation.navigate('ProviderDetail', { providerId: rp.provider.id })}
-          onBook={() => navigation.navigate('BookingConfirm', { providerId: rp.provider.id })}
+          onPress={() => {
+            selectProvider(rp.provider.id);
+            navigation.navigate('ProviderDetail', { providerId: rp.provider.id });
+          }}
+          onBook={() => {
+            selectProvider(rp.provider.id);
+            navigation.navigate('BookingConfirm', { providerId: rp.provider.id });
+          }}
         />
       )) : MOCK_PROVIDERS.slice(0, 4).map((p, i) => (
         <ProviderCard

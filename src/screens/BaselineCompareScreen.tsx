@@ -1,16 +1,12 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { Badge } from '../components/Badge';
 import { ScoreRing } from '../components/ScoreRing';
+import { useAgentStore } from '../store/agentStore';
+import { BaselineFactorRow } from '../types/agent';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface CompareRow {
@@ -24,70 +20,70 @@ interface CompareRow {
 // ─── Data ────────────────────────────────────────────────────────────────────
 const TEST_QUERY = '"yaar nala band ho gaya urgent help chahiye 1500 se kam mein"';
 
-const COMPARE_ROWS: CompareRow[] = [
+const STATIC_COMPARE_ROWS: CompareRow[] = [
   {
     label: 'Distance',
     icon: 'location-outline',
-    weight: '15%',
-    baseline: { value: 'Not used', score: 0,  note: 'First available only' },
-    agentic:  { value: '1.2 km',   score: 94, note: 'Haversine calculation' },
+    weight: '10%',
+    baseline: { value: '1.2 km (nearest)', score: 94, note: 'Primary sort — picks closest available' },
+    agentic:  { value: '1.2 km (not primary)', score: 94, note: 'Weight: 10% — not sole criterion' },
   },
   {
     label: 'Travel Time',
     icon: 'time-outline',
-    weight: '10%',
-    baseline: { value: 'Not used', score: 0,  note: 'Ignored entirely' },
-    agentic:  { value: '4 min',    score: 88, note: '3.5 min/km city factor' },
+    weight: '9%',
+    baseline: { value: '4 min',  score: 88, note: 'Secondary sort criterion only' },
+    agentic:  { value: '4 min',  score: 88, note: 'Weight: 9% — included in multi-factor score' },
   },
   {
     label: 'Star Rating',
     icon: 'star-outline',
-    weight: '20%',
-    baseline: { value: 'Random',   score: 20, note: 'No rating check' },
-    agentic:  { value: '4.8 ⭐',   score: 95, note: 'Bayesian-adjusted avg' },
+    weight: '12%',
+    baseline: { value: 'Not checked', score: 0,  note: 'Ignored — no rating awareness' },
+    agentic:  { value: '4.8 ⭐',      score: 95, note: 'Weight: 12% — Bayesian-adjusted avg' },
   },
   {
     label: 'Review Recency',
     icon: 'calendar-outline',
-    weight: '8%',
-    baseline: { value: 'Not used', score: 0,  note: 'No recency awareness' },
-    agentic:  { value: '0.91',     score: 91, note: 'Exponential decay λ=0.02' },
+    weight: '11%',
+    baseline: { value: 'Not checked', score: 0,  note: 'Ignored — no recency awareness' },
+    agentic:  { value: '91%',         score: 91, note: 'Weight: 11% — exponential decay model' },
   },
   {
-    label: 'On-Time Score',
+    label: 'Reliability / On-Time',
     icon: 'checkmark-circle-outline',
-    weight: '12%',
-    baseline: { value: 'Not used', score: 0,  note: 'No history check' },
-    agentic:  { value: '94%',      score: 94, note: 'Historical punctuality' },
+    weight: '13%',
+    baseline: { value: 'Not checked', score: 0,  note: 'Ignored — no punctuality check' },
+    agentic:  { value: '94%',         score: 94, note: 'Weight: 13% — historical punctuality data' },
   },
   {
     label: 'Cancellation Rate',
     icon: 'close-circle-outline',
-    weight: '3%',
-    baseline: { value: 'Not used', score: 0,  note: 'No penalty for cancels' },
-    agentic:  { value: '3%',       score: 97, note: '1 – cancel_rate' },
+    weight: '5%',
+    baseline: { value: 'Not checked', score: 0,  note: 'Ignored — no penalty for cancels' },
+    agentic:  { value: '3%',          score: 97, note: 'Weight: 5% — risk-adjusted' },
   },
   {
     label: 'Skill Match',
     icon: 'construct-outline',
-    weight: '7%',
-    baseline: { value: 'Category', score: 30, note: 'Keyword only: "plumber"' },
-    agentic:  { value: '90%',      score: 90, note: 'Skill intersection score' },
+    weight: '14%',
+    baseline: { value: 'Category only', score: 20, note: 'Broad match: just "plumber" category' },
+    agentic:  { value: '90%',           score: 90, note: 'Weight: 14% — skill intersection score' },
   },
   {
-    label: 'Price vs Budget',
+    label: 'Price Fit',
     icon: 'cash-outline',
-    weight: '10%',
-    baseline: { value: 'Ignored',  score: 0,  note: 'No budget awareness' },
-    agentic:  { value: '₨1,354 / ₨1,500', score: 100, note: 'Within budget ✅' },
+    weight: '8%',
+    baseline: { value: 'Not checked', score: 0,   note: 'Ignored — no budget awareness' },
+    agentic:  { value: 'Good fit',    score: 90,  note: 'Weight: 8% — within budget ₨1,354/₨1,500' },
   },
 ];
 
-const BASELINE_TOTAL = Math.round(
-  COMPARE_ROWS.reduce((s, r) => s + r.baseline.score * parseFloat(r.weight) / 100, 0)
+const BASELINE_TOTAL_STATIC = Math.round(
+  STATIC_COMPARE_ROWS.reduce((s, r) => s + r.baseline.score * parseFloat(r.weight) / 100, 0)
 );
-const AGENTIC_TOTAL = Math.round(
-  COMPARE_ROWS.reduce((s, r) => s + r.agentic.score * parseFloat(r.weight) / 100, 0)
+const AGENTIC_TOTAL_STATIC = Math.round(
+  STATIC_COMPARE_ROWS.reduce((s, r) => s + r.agentic.score * parseFloat(r.weight) / 100, 0)
 );
 
 const SYSTEM_COMPARE = [
@@ -160,6 +156,27 @@ function FactorRow({ row, expanded, onToggle }: { row: CompareRow; expanded: boo
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export function BaselineCompareScreen() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const { result } = useAgentStore();
+
+  // Use real store comparison if pipeline has been run, else static demo
+  const storeCompare = result?.baselineComparison;
+  const COMPARE_ROWS: CompareRow[] = storeCompare?.factorRows
+    ? storeCompare.factorRows.map(r => ({
+        label:    r.factor,
+        icon:     'analytics-outline',
+        weight:   r.agentic.note.match(/\d+%/)?.[0] ?? '10%',
+        baseline: { value: r.baseline.value, score: r.baseline.score, note: r.baseline.note },
+        agentic:  { value: r.agentic.value,  score: r.agentic.score,  note: r.agentic.note  },
+      }))
+    : STATIC_COMPARE_ROWS;
+
+  const BASELINE_TOTAL = storeCompare?.baselineScore ?? BASELINE_TOTAL_STATIC;
+  const AGENTIC_TOTAL  = storeCompare?.agenticScore  ?? AGENTIC_TOTAL_STATIC;
+
+  const testQuery = result?.intent?.originalText
+    ? `"${result.intent.originalText.slice(0, 80)}"` : TEST_QUERY;
+  const baselineProvider = storeCompare?.baselineProvider?.name ?? 'Nearest available';
+  const agenticProvider  = result?.selectedProvider?.provider.name ?? 'Agentic choice';
 
   return (
     <ScrollView
@@ -178,7 +195,13 @@ export function BaselineCompareScreen() {
         </View>
         <View style={styles.queryBox}>
           <Text style={styles.queryLabel}>TEST QUERY</Text>
-          <Text style={styles.queryText}>{TEST_QUERY}</Text>
+          <Text style={styles.queryText}>{testQuery}</Text>
+        {storeCompare && (
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.xs }}>
+            <Text style={styles.queryLabel}>BASELINE: {baselineProvider}</Text>
+            <Text style={[styles.queryLabel, { color: Colors.success }]}>AGENTIC: {agenticProvider}</Text>
+          </View>
+        )}
         </View>
       </View>
 

@@ -5,73 +5,129 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
-import { MOCK_DISPUTE } from '../data/mockData';
+import { useAgentStore } from '../store/agentStore';
+import { runDisputeAgent, DisputeType } from '../agents/DisputeAgent';
 
-const REASONS = ['Quality Issue', 'Provider No-Show', 'Overcharged', 'Late Arrival', 'Safety Concern'];
+const DISPUTE_TYPES: { id: DisputeType; label: string; icon: string; description: string }[] = [
+  { id: 'price_dispute',     label: 'Price Dispute',      icon: 'cash-outline',       description: 'Final price different from quote' },
+  { id: 'no_show',           label: 'Provider No-Show',   icon: 'person-remove-outline', description: 'Provider did not arrive' },
+  { id: 'quality_complaint', label: 'Quality Complaint',  icon: 'star-half-outline',  description: 'Work quality was unsatisfactory' },
+  { id: 'cancellation',      label: 'Cancellation',       icon: 'close-circle-outline', description: 'Cancelled booking refund request' },
+];
 
 export const DisputeCenterScreen: React.FC = () => {
-  const [selectedReason, setSelectedReason] = useState<string | null>(null);
-  const [description, setDescription] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const [selectedType, setSelectedType] = useState<DisputeType | null>(null);
+  const [description, setDescription]   = useState('');
+  const [result, setResult]             = useState<ReturnType<typeof runDisputeAgent> | null>(null);
 
-  const handleSubmit = () => setSubmitted(true);
+  const { result: storeResult } = useAgentStore();
+  const booking  = storeResult?.booking;
+  const provider = storeResult?.selectedProvider?.provider;
+  const price    = storeResult?.pricing?.finalEstimate ?? 1354;
+
+  const handleSubmit = () => {
+    if (!selectedType) return;
+    const res = runDisputeAgent({
+      bookingId:   booking?.bookingId ?? 'B-U360-DEMO',
+      type:        selectedType,
+      description: description || 'User submitted dispute',
+      finalPrice:  price,
+    });
+    setResult(res);
+  };
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+
       {/* Header */}
       <View style={styles.headerCard}>
         <Ionicons name="shield-outline" size={28} color={Colors.primary} />
         <Text style={styles.headerTitle}>Dispute Center</Text>
         <Text style={styles.headerSub}>
-          Our AI mediator will review your case and provide a fair resolution within 24 hours.
+          Our AI mediator evaluates disputes fairly using booking data, payment records, and provider history.
         </Text>
       </View>
 
-      {/* Existing resolved dispute */}
-      <Text style={styles.sectionLabel}>Past Dispute</Text>
-      <View style={styles.resolvedCard}>
-        <View style={styles.resolvedTop}>
-          <Text style={styles.resolvedId}>Booking #{MOCK_DISPUTE.bookingId}</Text>
-          <Badge label="Resolved" variant="success" />
+      {/* Booking context */}
+      {booking && (
+        <View style={styles.contextCard}>
+          <Text style={styles.sectionLabel}>BOOKING CONTEXT</Text>
+          <View style={styles.contextRow}>
+            <Text style={styles.contextLabel}>Booking ID</Text>
+            <Text style={styles.contextVal}>{booking.bookingId}</Text>
+          </View>
+          <View style={styles.contextRow}>
+            <Text style={styles.contextLabel}>Provider</Text>
+            <Text style={styles.contextVal}>{provider?.name ?? 'Unknown'}</Text>
+          </View>
+          <View style={styles.contextRow}>
+            <Text style={styles.contextLabel}>Amount Paid</Text>
+            <Text style={styles.contextVal}>₨{price.toLocaleString()}</Text>
+          </View>
+          <View style={styles.contextRow}>
+            <Text style={styles.contextLabel}>Scheduled</Text>
+            <Text style={styles.contextVal}>{booking.scheduledAt}</Text>
+          </View>
         </View>
-        <Text style={styles.resolvedReason}>{MOCK_DISPUTE.reason}</Text>
-        <View style={styles.resolutionBox}>
-          <Text style={styles.resolutionLabel}>🤖 Agent Decision</Text>
-          <Text style={styles.resolutionText}>{MOCK_DISPUTE.agentDecision}</Text>
-        </View>
-        <View style={styles.resolutionBox}>
-          <Text style={styles.resolutionLabel}>✅ Resolution</Text>
-          <Text style={styles.resolutionText}>{MOCK_DISPUTE.resolution}</Text>
-        </View>
-      </View>
+      )}
 
-      {/* New dispute form */}
-      <Text style={styles.sectionLabel}>File a New Dispute</Text>
-      {submitted ? (
-        <View style={styles.successBox}>
-          <Ionicons name="checkmark-circle" size={40} color={Colors.success} />
-          <Text style={styles.successText}>Dispute Submitted</Text>
-          <Text style={styles.successSub}>
-            Our AI mediator will analyze your case and respond within 24 hours.
-          </Text>
-          <Badge label="Case ID: D-002" variant="primary" />
+      {/* Result view */}
+      {result ? (
+        <View style={styles.resultOuter}>
+          <View style={styles.resultHeader}>
+            <Ionicons name="hardware-chip-outline" size={18} color={Colors.primary} />
+            <Text style={styles.resultTitle}>DisputeAgent Decision</Text>
+            <Badge label="Evaluated" variant="success" />
+          </View>
+
+          <View style={styles.resultBox}>
+            <Text style={styles.resultDecision}>{result.decision}</Text>
+          </View>
+
+          <View style={styles.infoCard}>
+            {[
+              { label: 'Resolution',   value: result.resolution },
+              result.compensation ? { label: 'Compensation', value: result.compensation } : null,
+              result.providerAction ? { label: 'Provider Action', value: result.providerAction } : null,
+            ].filter(Boolean).map((row, i) => (
+              <View key={i} style={styles.infoRow}>
+                <Text style={styles.infoLabel}>{row!.label}</Text>
+                <Text style={styles.infoVal}>{row!.value}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.tracePreview}>
+            <Ionicons name="git-branch-outline" size={13} color={Colors.primary} />
+            <Text style={styles.traceText}>Trace: {result.trace.decision}</Text>
+          </View>
+
+          <Button label="File Another Dispute" variant="outline" size="md" fullWidth
+            onPress={() => { setResult(null); setSelectedType(null); setDescription(''); }} />
         </View>
       ) : (
         <>
-          <Text style={styles.inputLabel}>Select Reason</Text>
-          <View style={styles.reasonGrid}>
-            {REASONS.map((r) => (
+          {/* Dispute type */}
+          <Text style={styles.sectionLabel}>SELECT DISPUTE TYPE</Text>
+          <View style={styles.typeGrid}>
+            {DISPUTE_TYPES.map(dt => (
               <TouchableOpacity
-                key={r}
-                style={[styles.reasonChip, selectedReason === r && styles.reasonChipActive]}
-                onPress={() => setSelectedReason(r)}
+                key={dt.id}
+                style={[styles.typeCard, selectedType === dt.id && styles.typeCardActive]}
+                onPress={() => setSelectedType(dt.id)}
               >
-                <Text style={[styles.reasonText, selectedReason === r && { color: Colors.primary }]}>{r}</Text>
+                <Ionicons name={dt.icon as any} size={22}
+                  color={selectedType === dt.id ? Colors.primary : Colors.textMuted} />
+                <Text style={[styles.typeLabel, selectedType === dt.id && { color: Colors.primary }]}>
+                  {dt.label}
+                </Text>
+                <Text style={styles.typeDesc}>{dt.description}</Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          <Text style={styles.inputLabel}>Describe the Issue</Text>
+          {/* Description */}
+          <Text style={styles.sectionLabel}>DESCRIBE THE ISSUE</Text>
           <TextInput
             style={styles.textArea}
             placeholder="Describe what happened in detail..."
@@ -83,15 +139,23 @@ export const DisputeCenterScreen: React.FC = () => {
             textAlignVertical="top"
           />
 
-          <Button
-            label="Submit Dispute"
-            onPress={handleSubmit}
-            variant="danger"
-            size="lg"
-            fullWidth
-            disabled={!selectedReason}
-            style={styles.submitBtn}
-          />
+          {/* What happens next */}
+          <View style={styles.infoCard}>
+            <Text style={styles.sectionLabel}>WHAT HAPPENS NEXT</Text>
+            {[
+              '🤖 AI mediator evaluates booking data and provider history',
+              '⚖️ Fair decision made based on dispute policy',
+              '💰 Refund/compensation issued automatically if applicable',
+              '⚠️ Provider warned or escalated if needed',
+              '👤 Human agent assigned if AI cannot resolve',
+            ].map((step, i) => (
+              <Text key={i} style={styles.stepText}>{step}</Text>
+            ))}
+          </View>
+
+          <Button label="Submit Dispute to AI Mediator"
+            onPress={handleSubmit} variant="danger" size="lg" fullWidth
+            disabled={!selectedType} style={styles.submitBtn} />
         </>
       )}
     </ScrollView>
@@ -100,47 +164,32 @@ export const DisputeCenterScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
-  content: { padding: Spacing.base, paddingBottom: Spacing.xxxl },
-  headerCard: {
-    backgroundColor: Colors.card, borderRadius: Radius.lg,
-    padding: Spacing.base, borderWidth: 1, borderColor: Colors.cardBorder,
-    alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.lg,
-  },
+  content: { padding: Spacing.base, paddingBottom: Spacing.xxxl, gap: Spacing.md },
+  headerCard: { backgroundColor: Colors.card, borderRadius: Radius.lg, padding: Spacing.base, borderWidth: 1, borderColor: Colors.cardBorder, alignItems: 'center', gap: Spacing.sm },
   headerTitle: { ...Typography.h3, color: Colors.textPrimary },
-  headerSub: { ...Typography.bodySm, color: Colors.textMuted, textAlign: 'center' },
-  sectionLabel: { ...Typography.label, color: Colors.textMuted, marginBottom: Spacing.sm, marginTop: Spacing.sm },
-  resolvedCard: {
-    backgroundColor: Colors.card, borderRadius: Radius.lg,
-    padding: Spacing.base, borderWidth: 1, borderColor: Colors.cardBorder, gap: Spacing.sm, marginBottom: Spacing.lg,
-  },
-  resolvedTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  resolvedId: { ...Typography.caption, color: Colors.textMuted, fontFamily: 'monospace' },
-  resolvedReason: { ...Typography.bodyMd, color: Colors.textPrimary },
-  resolutionBox: {
-    backgroundColor: Colors.inputBg, borderRadius: Radius.sm, padding: Spacing.sm, gap: 4,
-  },
-  resolutionLabel: { ...Typography.caption, color: Colors.primary, fontWeight: '700' },
-  resolutionText: { ...Typography.bodySm, color: Colors.textSecondary, lineHeight: 18 },
-  inputLabel: { ...Typography.label, color: Colors.textMuted, marginBottom: Spacing.sm, marginTop: Spacing.sm },
-  reasonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.md },
-  reasonChip: {
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
-    backgroundColor: Colors.card, borderRadius: Radius.full,
-    borderWidth: 1, borderColor: Colors.cardBorder,
-  },
-  reasonChipActive: { borderColor: Colors.primary, backgroundColor: Colors.primary + '11' },
-  reasonText: { ...Typography.bodySm, color: Colors.textMuted },
-  textArea: {
-    backgroundColor: Colors.inputBg, borderRadius: Radius.md,
-    borderWidth: 1, borderColor: Colors.cardBorder, color: Colors.textPrimary,
-    padding: Spacing.md, ...Typography.body, minHeight: 100, marginBottom: Spacing.md,
-  },
+  headerSub: { ...Typography.bodySm, color: Colors.textMuted, textAlign: 'center', lineHeight: 18 },
+  contextCard: { backgroundColor: Colors.card, borderRadius: Radius.md, padding: Spacing.md, borderWidth: 1, borderColor: Colors.cardBorder, gap: Spacing.sm },
+  contextRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  contextLabel: { ...Typography.bodySm, color: Colors.textMuted },
+  contextVal: { ...Typography.bodySm, color: Colors.textPrimary, fontWeight: '600', fontFamily: 'monospace' },
+  sectionLabel: { ...Typography.caption, color: Colors.textMuted, fontWeight: '700', letterSpacing: 1 },
+  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  typeCard: { width: '47%', backgroundColor: Colors.card, borderRadius: Radius.md, padding: Spacing.md, borderWidth: 1, borderColor: Colors.cardBorder, alignItems: 'center', gap: 6 },
+  typeCardActive: { borderColor: Colors.primary, backgroundColor: Colors.primary + '11' },
+  typeLabel: { ...Typography.bodyMd, color: Colors.textSecondary, fontWeight: '700', textAlign: 'center' },
+  typeDesc: { ...Typography.caption, color: Colors.textMuted, textAlign: 'center', lineHeight: 15 },
+  textArea: { backgroundColor: Colors.inputBg, borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.cardBorder, color: Colors.textPrimary, padding: Spacing.md, ...Typography.body, minHeight: 100 },
+  infoCard: { backgroundColor: Colors.cardElevated, borderRadius: Radius.md, padding: Spacing.md, borderWidth: 1, borderColor: Colors.cardBorder, gap: Spacing.sm },
+  infoRow: { gap: 4 },
+  infoLabel: { ...Typography.caption, color: Colors.primary, fontWeight: '700', letterSpacing: 0.5 },
+  infoVal: { ...Typography.bodySm, color: Colors.textSecondary, lineHeight: 18 },
+  stepText: { ...Typography.bodySm, color: Colors.textSecondary, lineHeight: 20 },
   submitBtn: {},
-  successBox: {
-    backgroundColor: Colors.card, borderRadius: Radius.lg,
-    padding: Spacing.xl, alignItems: 'center', gap: Spacing.md,
-    borderWidth: 1, borderColor: Colors.cardBorder,
-  },
-  successText: { ...Typography.h3, color: Colors.textPrimary },
-  successSub: { ...Typography.bodySm, color: Colors.textMuted, textAlign: 'center' },
+  resultOuter: { gap: Spacing.md },
+  resultHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  resultTitle: { ...Typography.h4, color: Colors.textPrimary, flex: 1 },
+  resultBox: { backgroundColor: Colors.success + '15', borderRadius: Radius.md, padding: Spacing.md, borderWidth: 1, borderColor: Colors.success + '44' },
+  resultDecision: { ...Typography.bodyMd, color: Colors.success, fontWeight: '700' },
+  tracePreview: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.card, borderRadius: Radius.sm, padding: Spacing.sm },
+  traceText: { ...Typography.caption, color: Colors.textMuted, flex: 1 },
 });
