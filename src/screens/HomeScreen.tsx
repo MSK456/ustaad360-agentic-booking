@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, StatusBar, KeyboardAvoidingView, Platform,
+  StyleSheet, StatusBar, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -10,18 +10,19 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { RootStackParamList } from '../navigation/types';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { Badge } from '../components/Badge';
+import { useAgentStore } from '../store/agentStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const QUICK_PROMPTS = [
-  { text: 'Nala band ho gaya', icon: 'water-outline', category: 'Plumber' },
-  { text: 'Bijli ki problem hai', icon: 'flash-outline', category: 'Electrician' },
-  { text: 'AC theek karo urgent', icon: 'snow-outline', category: 'AC Technician' },
-  { text: 'Darwaza theek karna hai', icon: 'home-outline', category: 'Carpenter' },
+  { text: 'Nala band ho gaya urgent help chahiye', icon: 'water-outline', category: 'Plumber' },
+  { text: 'Bijli ki problem hai aaj fix karo', icon: 'flash-outline', category: 'Electrician' },
+  { text: 'AC bilkul kaam nahi kar raha urgent', icon: 'snow-outline', category: 'AC Technician' },
+  { text: 'Darwaza theek karna hai kal subah', icon: 'home-outline', category: 'Carpenter' },
 ];
 
 const STATS = [
-  { label: 'Ustaadn', value: '500+' },
+  { label: 'Ustaads', value: '500+' },
   { label: 'Bookings', value: '12K+' },
   { label: 'Cities', value: '6' },
   { label: 'Avg Rating', value: '4.7★' },
@@ -30,11 +31,13 @@ const STATS = [
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
   const [query, setQuery] = useState('');
+  const { run, isLoading } = useAgentStore();
 
-  const handleSearch = () => {
-    if (query.trim().length > 2) {
-      navigation.navigate('IntentReview', { query: query.trim() });
-    }
+  const handleSearch = async (text: string) => {
+    const q = text.trim();
+    if (q.length < 3) return;
+    await run(q);
+    navigation.navigate('IntentReview', { query: q });
   };
 
   return (
@@ -80,15 +83,17 @@ export const HomeScreen: React.FC = () => {
                 placeholderTextColor={Colors.textMuted}
                 value={query}
                 onChangeText={setQuery}
-                onSubmitEditing={handleSearch}
+                onSubmitEditing={() => handleSearch(query)}
                 multiline
               />
               <TouchableOpacity
-                style={[styles.searchBtn, !query.trim() && styles.searchBtnDisabled]}
-                onPress={handleSearch}
-                disabled={!query.trim()}
+                style={[styles.searchBtn, (!query.trim() || isLoading) && styles.searchBtnDisabled]}
+                onPress={() => handleSearch(query)}
+                disabled={!query.trim() || isLoading}
               >
-                <Ionicons name="arrow-forward" size={22} color="#08111F" />
+                {isLoading
+                  ? <ActivityIndicator size="small" color="#08111F" />
+                  : <Ionicons name="arrow-forward" size={22} color="#08111F" />}
               </TouchableOpacity>
             </View>
           </View>
@@ -101,7 +106,7 @@ export const HomeScreen: React.FC = () => {
             <TouchableOpacity
               key={p.text}
               style={styles.promptChip}
-              onPress={() => navigation.navigate('IntentReview', { query: p.text })}
+              onPress={() => handleSearch(p.text)}
             >
               <Ionicons name={p.icon as any} size={20} color={Colors.primary} />
               <View>

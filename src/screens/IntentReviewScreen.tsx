@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   View, Text, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity,
 } from 'react-native';
@@ -11,6 +11,7 @@ import { Colors, Spacing, Radius, Typography } from '../theme';
 import { Badge } from '../components/Badge';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { useAgentStore } from '../store/agentStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'IntentReview'>;
@@ -50,51 +51,46 @@ const analyzeIntent = (query: string) => {
 
 export const IntentReviewScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
-  const route = useRoute<Route>();
-  const { query } = route.params;
+  const route      = useRoute<Route>();
+  const { query }  = route.params;
 
-  const [loading, setLoading] = useState(true);
-  const [intent, setIntent] = useState<ReturnType<typeof analyzeIntent> | null>(null);
+  const { result, isLoading } = useAgentStore();
+  const intent = result?.intent ?? null;
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIntent(analyzeIntent(query));
-      setLoading(false);
-    }, 1200);
-    return () => clearTimeout(timer);
-  }, [query]);
+  const fields = intent ? [
+    { label: 'Language',   value: intent.detectedLanguage.replace('_', ' '),         icon: 'language-outline' },
+    { label: 'Service',    value: intent.serviceType.replace('_', ' '),               icon: 'construct-outline' },
+    { label: 'Urgency',    value: intent.urgency.toUpperCase(),                       icon: 'alert-circle-outline' },
+    { label: 'Location',   value: intent.location ?? 'Not specified',                 icon: 'location-outline' },
+    { label: 'Time',       value: intent.timePreference,                              icon: 'time-outline' },
+    { label: 'Complexity', value: intent.jobComplexity,                               icon: 'layers-outline' },
+    { label: 'Budget',     value: intent.budgetSensitivity + ' sensitivity',          icon: 'cash-outline' },
+  ] : [];
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
-      {/* Original query */}
       <Card style={styles.queryCard}>
         <Text style={styles.queryLabel}>Your Request</Text>
         <Text style={styles.queryText}>"{query}"</Text>
       </Card>
 
-      {loading ? (
+      {isLoading ? (
         <View style={styles.loadingBox}>
           <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>AI is analyzing your request...</Text>
-          <Text style={styles.loadingSubtext}>Detecting language → Extracting intent → Parsing entities</Text>
+          <Text style={styles.loadingText}>AI pipeline running…</Text>
+          <Text style={styles.loadingSubtext}>Intent → Discovery → Ranking → Pricing → Booking</Text>
         </View>
       ) : intent ? (
         <>
-          {/* Intent result */}
           <Card elevated style={styles.intentCard}>
             <View style={styles.intentHeader}>
               <Ionicons name="hardware-chip-outline" size={20} color={Colors.primary} />
-              <Text style={styles.intentTitle}>NLU Agent Result</Text>
-              <Badge label={`${Math.round(intent.confidence * 100)}% confidence`} variant="success" />
+              <Text style={styles.intentTitle}>IntentAgent Result</Text>
+              <Badge label={`${Math.round(intent.confidence * 100)}% conf`} variant="success" />
             </View>
 
             <View style={styles.fieldGrid}>
-              {[
-                { label: 'Language', value: intent.lang, icon: 'language-outline' },
-                { label: 'Service', value: intent.service, icon: 'construct-outline' },
-                { label: 'Urgency', value: intent.urgency.toUpperCase(), icon: 'alert-circle-outline' },
-                { label: 'Budget', value: intent.budget ? `₨${intent.budget.toLocaleString()}` : 'Not specified', icon: 'cash-outline' },
-              ].map((f) => (
+              {fields.map((f) => (
                 <View key={f.label} style={styles.fieldRow}>
                   <Ionicons name={f.icon as any} size={16} color={Colors.primary} />
                   <Text style={styles.fieldLabel}>{f.label}</Text>
@@ -102,41 +98,40 @@ export const IntentReviewScreen: React.FC = () => {
                 </View>
               ))}
             </View>
+
+            {intent.clarificationQuestion && (
+              <View style={styles.clarificationBox}>
+                <Ionicons name="help-circle-outline" size={16} color={Colors.warning} />
+                <Text style={styles.clarificationText}>{intent.clarificationQuestion}</Text>
+              </View>
+            )}
           </Card>
 
-          {/* Urgency indicator */}
           <View style={styles.urgencyRow}>
             <Badge
-              label={intent.urgency === 'high' ? '🔴 High Priority' : '🟡 Medium Priority'}
-              variant={intent.urgency === 'high' ? 'danger' : 'warning'}
+              label={intent.urgency === 'high' || intent.urgency === 'emergency' ? '🔴 High Priority' : '🟡 Medium Priority'}
+              variant={intent.urgency === 'high' || intent.urgency === 'emergency' ? 'danger' : 'warning'}
               dot
             />
             <Text style={styles.urgencyNote}>
-              {intent.urgency === 'high' ? 'Providers showing immediate availability' : 'Flexible time slots available'}
+              {intent.urgency === 'high' ? 'Showing immediately available providers' : 'Flexible time slots available'}
             </Text>
           </View>
 
-          {/* Actions */}
-          <Button
-            label="Find Providers →"
-            onPress={() => navigation.navigate('ProviderList')}
-            variant="primary"
-            size="lg"
-            fullWidth
-            style={styles.ctaBtn}
-          />
-          <Button
-            label="Refine Request"
-            onPress={() => navigation.goBack()}
-            variant="outline"
-            size="md"
-            fullWidth
-          />
+          <Button label="View Ranked Providers →" onPress={() => navigation.navigate('ProviderList')}
+            variant="primary" size="lg" fullWidth style={styles.ctaBtn} />
+          <Button label="Refine Request" onPress={() => navigation.goBack()}
+            variant="outline" size="md" fullWidth />
         </>
-      ) : null}
+      ) : (
+        <View style={styles.loadingBox}>
+          <Text style={styles.loadingText}>Type a request on the home screen first.</Text>
+        </View>
+      )}
     </ScrollView>
   );
 };
+
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
@@ -158,7 +153,10 @@ const styles = StyleSheet.create({
   },
   fieldLabel: { ...Typography.bodySm, color: Colors.textMuted, width: 70 },
   fieldValue: { ...Typography.bodySm, color: Colors.textPrimary, fontWeight: '600', flex: 1 },
+  clarificationBox: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.xs, backgroundColor: Colors.warning + '15', borderRadius: Radius.sm, padding: Spacing.sm },
+  clarificationText: { ...Typography.bodySm, color: Colors.warning, flex: 1 },
   urgencyRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, flexWrap: 'wrap' },
   urgencyNote: { ...Typography.bodySm, color: Colors.textMuted, flex: 1 },
   ctaBtn: { marginTop: Spacing.sm },
 });
+

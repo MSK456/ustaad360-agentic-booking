@@ -7,12 +7,16 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { RootStackParamList } from '../navigation/types';
 import { Colors, Spacing, Typography } from '../theme';
 import { ProviderCard } from '../components/ProviderCard';
-import { MOCK_RANKED_PROVIDERS } from '../data/mockData';
+import { useAgentStore } from '../store/agentStore';
+import { MOCK_PROVIDERS } from '../data/providers';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export const ProviderListScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
+  const { result } = useAgentStore();
+  const providers = result?.rankedProviders ?? [];
+  const count = providers.length > 0 ? providers.length : MOCK_PROVIDERS.length;
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -26,7 +30,7 @@ export const ProviderListScreen: React.FC = () => {
 
       {/* Results header */}
       <View style={styles.resultsHeader}>
-        <Text style={styles.resultsTitle}>{MOCK_RANKED_PROVIDERS.length} Providers Ranked</Text>
+        <Text style={styles.resultsTitle}>{count} Providers Ranked</Text>
         <View style={styles.factorsBadge}>
           <Ionicons name="podium-outline" size={12} color={Colors.primary} />
           <Text style={styles.factorsText}>9 factors</Text>
@@ -34,13 +38,21 @@ export const ProviderListScreen: React.FC = () => {
       </View>
 
       {/* Provider cards */}
-      {MOCK_RANKED_PROVIDERS.map((rp, i) => (
+      {providers.length > 0 ? providers.map((rp, i) => (
         <ProviderCard
           key={rp.provider.id}
           rankedProvider={rp}
           rank={i + 1}
           onPress={() => navigation.navigate('ProviderDetail', { providerId: rp.provider.id })}
           onBook={() => navigation.navigate('BookingConfirm', { providerId: rp.provider.id })}
+        />
+      )) : MOCK_PROVIDERS.slice(0, 4).map((p, i) => (
+        <ProviderCard
+          key={p.id}
+          rankedProvider={{ provider: p, finalScore: 80 - i * 5, factorScores: {} as any, rankingReason: '', riskFlags: [], whyRecommended: '', badges: [], estimatedPrice: p.basePricePerHour, distanceKm: 2 + i, travelTimeMin: 7 + i * 3 }}
+          rank={i + 1}
+          onPress={() => navigation.navigate('ProviderDetail', { providerId: p.id })}
+          onBook={() => navigation.navigate('BookingConfirm', { providerId: p.id })}
         />
       ))}
 

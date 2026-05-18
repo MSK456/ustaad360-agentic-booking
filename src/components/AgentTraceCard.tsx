@@ -64,7 +64,7 @@ export const AgentTraceCard: React.FC<AgentTraceCardProps> = ({ entry }) => {
 
       {/* Expand reasoning */}
       <TouchableOpacity style={styles.expandBtn} onPress={() => setExpanded(!expanded)}>
-        <Text style={styles.expandLabel}>{expanded ? 'Hide' : 'Show'} Reasoning</Text>
+        <Text style={styles.toggleText}>{expanded ? 'Hide Rationale' : 'Show Decision Rationale'}</Text>
         <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color={Colors.primary} />
       </TouchableOpacity>
 
@@ -101,6 +101,7 @@ const styles = StyleSheet.create({
   ioText: { ...Typography.bodySm, color: Colors.textSecondary, flex: 1 },
   expandBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   expandLabel: { ...Typography.caption, color: Colors.primary, fontWeight: '600' },
+  toggleText:  { ...Typography.caption, color: Colors.primary, fontWeight: '600' },
   reasoning: {
     backgroundColor: Colors.inputBg,
     borderRadius: Radius.sm,
