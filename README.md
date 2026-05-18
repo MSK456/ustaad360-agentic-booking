@@ -48,14 +48,33 @@ The app understands, finds the best-matched provider, negotiates the price, book
 git clone https://github.com/MSK456/ustaad360-agentic-booking.git
 cd ustaad360-agentic-booking
 npm install
-cp .env.example .env   # add your Gemini + Firebase keys
-npx expo start
+npx expo start --port 8083
 ```
 
 To build the APK:
 ```bash
 eas build --platform android --profile preview
 ```
+
+---
+
+## Running on Phone (Expo Go)
+
+> ⚠️ This project uses **Expo SDK 51**. The Play Store version of Expo Go is SDK 54 and **will not work**.
+
+**Step 1 — Install the correct Expo Go:**
+
+👉 [Download Expo Go for SDK 51 (Android APK)](https://expo.dev/go?sdkVersion=51&platform=android&device=true)
+
+**Step 2 — Start the dev server:**
+```bash
+npx expo start --port 8083
+```
+
+**Step 3 — Scan the QR code** shown in the terminal with the SDK 51 Expo Go app.
+
+> ⚠️ Do NOT press `a` in the terminal unless you have Android Studio + ADB configured.
+> See [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) for full details on SDK mismatch, ADB errors, and port conflicts.
 
 ---
 
