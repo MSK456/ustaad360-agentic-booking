@@ -5,7 +5,9 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.ustaad360.app"
@@ -15,6 +17,9 @@
       "adaptiveIcon": {
         "backgroundColor": "#08111F"
       }
-    }
+    },
+    "plugins": [
+      "expo-font"
+    ]
   }
 }

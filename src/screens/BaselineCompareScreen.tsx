@@ -6,7 +6,8 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
+
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { Badge } from '../components/Badge';
 import { ScoreRing } from '../components/ScoreRing';

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
+
 import { RankedProvider } from '../types';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { ScoreRing } from './ScoreRing';
