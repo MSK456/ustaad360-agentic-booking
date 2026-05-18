@@ -122,7 +122,14 @@ export const DemoScenariosScreen: React.FC = () => {
       // silent fallback
     }
     setRunningId(null);
-    navigation.navigate(scenario.navigateTo as any, scenario.navigateParams);
+
+    // Tab screens (AgentTrace, etc.) need MainTabs navigate
+    const tabScreens = ['AgentTrace', 'BaselineCompare', 'DemoScenarios'];
+    if (tabScreens.includes(scenario.navigateTo as string)) {
+      (navigation as any).navigate('MainTabs', { screen: scenario.navigateTo });
+    } else {
+      navigation.navigate(scenario.navigateTo as any, scenario.navigateParams);
+    }
   };
 
   return (

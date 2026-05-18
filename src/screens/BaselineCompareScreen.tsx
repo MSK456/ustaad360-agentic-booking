@@ -6,7 +6,6 @@ import { Colors, Spacing, Radius, Typography } from '../theme';
 import { Badge } from '../components/Badge';
 import { ScoreRing } from '../components/ScoreRing';
 import { useAgentStore } from '../store/agentStore';
-import { BaselineFactorRow } from '../types/agent';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface CompareRow {
@@ -164,9 +163,9 @@ export function BaselineCompareScreen() {
     ? storeCompare.factorRows.map(r => ({
         label:    r.factor,
         icon:     'analytics-outline',
-        weight:   r.agentic.note.match(/\d+%/)?.[0] ?? '10%',
-        baseline: { value: r.baseline.value, score: r.baseline.score, note: r.baseline.note },
-        agentic:  { value: r.agentic.value,  score: r.agentic.score,  note: r.agentic.note  },
+        weight:   (r.agentic.note ?? '').match(/\d+%/)?.[0] ?? '10%',
+        baseline: { value: r.baseline.value, score: r.baseline.score, note: r.baseline.note ?? '' },
+        agentic:  { value: r.agentic.value,  score: r.agentic.score,  note: r.agentic.note  ?? '' },
       }))
     : STATIC_COMPARE_ROWS;
 

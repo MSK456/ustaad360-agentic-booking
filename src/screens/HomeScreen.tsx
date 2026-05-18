@@ -139,7 +139,7 @@ export const HomeScreen: React.FC = () => {
         {/* Powered by */}
         <View style={styles.powered}>
           <Ionicons name="hardware-chip-outline" size={14} color={Colors.textMuted} />
-          <Text style={styles.poweredText}>Powered by Google Gemini AI</Text>
+          <Text style={styles.poweredText}>Ustaad360 — Fully offline · 10-agent AI pipeline</Text>
         </View>
       </ScrollView>
     </View>

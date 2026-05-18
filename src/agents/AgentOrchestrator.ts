@@ -114,7 +114,7 @@ export async function runOrchestrator(
   // 5. Scheduling
   const { scheduledAt, trace: t5 } = selected
     ? runSchedulingAgent(selected, intent)
-    : { scheduledAt: 'TBD', slot: 'TBD', trace: { id: 'skip', timestamp: '', agentName: 'SchedulingAgent', action: 'Skipped', inputSummary: '', decision: 'No provider', rationale: '', confidence: 0, dataUsed: [], nextAction: '', status: 'failed' as const, durationMs: 0 } };
+    : { scheduledAt: 'TBD', trace: { id: 'skip', timestamp: '', agentName: 'SchedulingAgent', action: 'Skipped', inputSummary: '', decision: 'No provider', rationale: '', confidence: 0, dataUsed: [], nextAction: '', status: 'failed' as const, durationMs: 0 } };
   traces.push(t5);
 
   // 6. Booking

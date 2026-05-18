@@ -103,7 +103,7 @@ export const FollowUpTimelineScreen: React.FC = () => {
       {/* Actions */}
       <View style={styles.actions}>
         <Button label="View Agent Trace" variant="outline" size="md" fullWidth
-          onPress={() => navigation.navigate('AgentTrace' as any)} />
+          onPress={() => (navigation as any).navigate('MainTabs', { screen: 'AgentTrace' })} />
         <Button label="File a Dispute" variant="ghost" size="md" fullWidth
           onPress={() => navigation.navigate('DisputeCenter')} />
       </View>

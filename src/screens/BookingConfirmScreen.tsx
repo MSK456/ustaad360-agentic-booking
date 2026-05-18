@@ -9,14 +9,17 @@ import { Colors, Spacing, Radius, Typography } from '../theme';
 import { Button } from '../components/Button';
 import { Badge } from '../components/Badge';
 import { useAgentStore } from '../store/agentStore';
+import { runBookingAgent } from '../agents/BookingAgent';
+import { runFollowUpAgent } from '../agents/FollowUpAgent';
+import { runSchedulingAgent } from '../agents/SchedulingAgent';
 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'BookingConfirm'>;
 
 const PAYMENT_METHODS = [
-  { id: 'cash',      label: 'Cash',       icon: 'cash-outline' },
-  { id: 'easypaisa', label: 'Easypaisa',  icon: 'phone-portrait-outline' },
-  { id: 'jazzcash',  label: 'JazzCash',   icon: 'card-outline' },
+  { id: 'cash',      label: 'Cash',      icon: 'cash-outline' },
+  { id: 'easypaisa', label: 'Easypaisa', icon: 'phone-portrait-outline' },
+  { id: 'jazzcash',  label: 'JazzCash',  icon: 'card-outline' },
 ];
 
 export const BookingConfirmScreen: React.FC = () => {
@@ -24,34 +27,49 @@ export const BookingConfirmScreen: React.FC = () => {
   const route      = useRoute<Route>();
   const { providerId } = route.params;
 
-  const [payment, setPayment]   = useState('cash');
+  const [payment, setPayment]     = useState('cash');
   const [confirmed, setConfirmed] = useState(false);
 
-  const { result } = useAgentStore();
+  const { result, selectedProviderId } = useAgentStore();
 
+  // Find provider from ranked list
   const rankedProvider = result?.rankedProviders.find(r => r.provider.id === providerId)
     ?? result?.rankedProviders[0];
-  const pricing  = result?.pricing;
-  const booking  = result?.booking;
+  const pricing  = result?.pricing ?? null;
   const provider = rankedProvider?.provider;
 
-  const bookingId = booking?.bookingId ?? 'B-U360-DEMO';
-  const confCode  = booking?.confirmationCode ?? 'DEMO01';
-  const price     = pricing?.finalEstimate ?? rankedProvider?.estimatedPrice ?? 1354;
-  const slot      = booking?.scheduledAt ?? 'Tomorrow at 09:00 AM';
+  // Use orchestrator booking or generate on-the-fly
+  const existingBooking = result?.booking?.providerId === providerId ? result.booking : null;
+
+  // Local booking generation if orchestrator result is for a different provider
+  const [localBooking, setLocalBooking] = useState(existingBooking);
+
+  const bookingData = localBooking ?? existingBooking;
+  const bookingId   = bookingData?.bookingId ?? 'B-U360-DEMO';
+  const confCode    = bookingData?.confirmationCode ?? 'DEMO01';
+  const price       = bookingData?.finalPrice ?? pricing?.finalEstimate ?? rankedProvider?.estimatedPrice ?? 1354;
+  const slot        = bookingData?.scheduledAt ?? 'Tomorrow at 09:00 AM';
+  const address     = bookingData?.address ?? 'House 42, Gulberg III, Lahore';
 
   const handleConfirm = () => {
+    // If we don't have a booking for this provider, generate one now
+    if (!bookingData && rankedProvider && pricing) {
+      const { scheduledAt } = runSchedulingAgent(rankedProvider, result!.intent);
+      const { booking } = runBookingAgent(rankedProvider, pricing, scheduledAt);
+      setLocalBooking(booking);
+    }
     setConfirmed(true);
-    setTimeout(() => navigation.navigate('FollowUpTimeline', { bookingId }), 1200);
+    setTimeout(() => navigation.navigate('FollowUpTimeline', { bookingId }), 1400);
   };
 
   if (!provider) {
     return (
       <View style={styles.fallback}>
-        <Ionicons name="alert-circle-outline" size={40} color={Colors.textMuted} />
-        <Text style={styles.fallbackText}>No booking data found. Run a search first.</Text>
+        <Ionicons name="alert-circle-outline" size={48} color={Colors.textMuted} />
+        <Text style={styles.fallbackTitle}>No Booking Data</Text>
+        <Text style={styles.fallbackSub}>Please run a search from the home screen first.</Text>
         <Button label="Go Home" onPress={() => navigation.navigate('MainTabs' as any)}
-          variant="outline" size="md" fullWidth style={{ marginTop: Spacing.md }} />
+          variant="outline" size="md" fullWidth style={{ marginTop: Spacing.lg }} />
       </View>
     );
   }
@@ -60,18 +78,18 @@ export const BookingConfirmScreen: React.FC = () => {
     return (
       <View style={styles.successRoot}>
         <View style={styles.successCircle}>
-          <Ionicons name="checkmark" size={48} color="#08111F" />
+          <Ionicons name="checkmark" size={52} color="#08111F" />
         </View>
         <Text style={styles.successTitle}>Booking Confirmed!</Text>
         <Text style={styles.successId}>#{bookingId}</Text>
-        <Text style={styles.successCode}>Confirmation Code: {confCode}</Text>
-        <Text style={styles.successNote}>{provider.name} will arrive {slot}</Text>
-        <Text style={styles.successReminder}>📲 Reminder set · 📅 Calendar updated · 💬 WhatsApp sent</Text>
+        <Text style={styles.successCode}>Code: {confCode}</Text>
+        <Text style={styles.successNote}>{provider.name} · {slot}</Text>
+        <Text style={styles.successReminder}>📲 WhatsApp sent · 📅 Calendar updated · ⏰ Reminder set</Text>
         <View style={styles.successBtns}>
-          <Button label="View Follow-up Timeline" variant="primary" size="lg" fullWidth
+          <Button label="View Follow-up Timeline →" variant="primary" size="lg" fullWidth
             onPress={() => navigation.navigate('FollowUpTimeline', { bookingId })} />
           <Button label="View Agent Trace" variant="outline" size="md" fullWidth
-            onPress={() => navigation.navigate('AgentTrace' as any)} />
+            onPress={() => (navigation as any).navigate('MainTabs', { screen: 'AgentTrace' })} />
         </View>
       </View>
     );
@@ -82,51 +100,71 @@ export const BookingConfirmScreen: React.FC = () => {
 
       {/* Provider bar */}
       <View style={styles.providerBar}>
-        <View style={styles.avatarBox}><Text style={styles.avatarInitial}>{provider.name[0]}</Text></View>
+        <View style={styles.avatarBox}>
+          <Text style={styles.avatarInitial}>{provider.name[0]}</Text>
+        </View>
         <View style={styles.providerInfo}>
           <Text style={styles.providerName}>{provider.name}</Text>
           <Text style={styles.providerMeta}>
-            ⭐ {provider.rating.toFixed(1)} · {slot} · Gulberg III
+            ⭐ {provider.rating.toFixed(1)} · {slot}
           </Text>
+          <Text style={styles.providerAddr}>{address}</Text>
         </View>
         {provider.verifiedBadge && <Badge label="Verified" variant="success" />}
       </View>
 
-      {/* Booking info */}
-      <View style={styles.infoCard}>
+      {/* Booking details */}
+      <View style={styles.card}>
         <Text style={styles.sectionLabel}>BOOKING DETAILS</Text>
         {[
-          { label: 'Booking ID',    value: bookingId, mono: true },
-          { label: 'Confirm Code',  value: confCode,  mono: true },
-          { label: 'Service',       value: provider.serviceCategories[0]?.replace('_', ' ') ?? 'Service' },
-          { label: 'Time Slot',     value: slot },
-          { label: 'Location',      value: booking?.address ?? 'House 42, Gulberg III' },
-          { label: 'Payment',       value: payment.charAt(0).toUpperCase() + payment.slice(1) },
+          { label: 'Booking ID',   value: bookingId,                                                         mono: true  },
+          { label: 'Conf. Code',   value: confCode,                                                          mono: true  },
+          { label: 'Service',      value: provider.serviceCategories[0]?.replace('_', ' ') ?? 'Service',    mono: false },
+          { label: 'Scheduled',    value: slot,                                                              mono: false },
+          { label: 'Address',      value: address,                                                           mono: false },
+          { label: 'Payment',      value: payment.charAt(0).toUpperCase() + payment.slice(1),               mono: false },
         ].map(row => (
-          <View key={row.label} style={styles.infoRow}>
-            <Text style={styles.infoLabel}>{row.label}</Text>
-            <Text style={[styles.infoVal, row.mono && { fontFamily: 'monospace' }]}>{row.value}</Text>
+          <View key={row.label} style={styles.detailRow}>
+            <Text style={styles.detailLabel}>{row.label}</Text>
+            <Text style={[styles.detailVal, row.mono && { fontFamily: 'monospace' }]}>{row.value}</Text>
           </View>
         ))}
       </View>
 
       {/* Price receipt */}
-      <View style={styles.receiptCard}>
+      <View style={styles.card}>
         <Text style={styles.sectionLabel}>PRICE RECEIPT</Text>
-        {pricing ? [
-          { label: 'Base Rate',          value: `₨${pricing.baseRate}` },
-          { label: 'Distance Surcharge', value: `₨${pricing.distanceSurcharge}` },
-          { label: 'Complexity Fee',     value: `₨${pricing.complexityFee}` },
-          { label: 'Provider Premium',   value: `₨${pricing.providerPremium}` },
-          { label: `Urgency ×${pricing.urgencyMultiplier}`, value: '' },
-          { label: `Demand ×${pricing.demandMultiplier}`,   value: '' },
-          { label: 'Loyalty Discount',   value: `−₨${pricing.loyaltyDiscount}` },
-        ].filter(r => r.value).map(row => (
-          <View key={row.label} style={styles.receiptRow}>
-            <Text style={styles.receiptLabel}>{row.label}</Text>
-            <Text style={styles.receiptVal}>{row.value}</Text>
-          </View>
-        )) : null}
+
+        {pricing ? (
+          <>
+            {[
+              { label: 'Base Rate',           value: `₨${pricing.baseRate}`                },
+              { label: 'Distance Surcharge',  value: `₨${pricing.distanceSurcharge}`       },
+              { label: 'Complexity Fee',      value: `₨${pricing.complexityFee}`           },
+              { label: 'Provider Premium',    value: `₨${pricing.providerPremium}`         },
+            ].map(r => (
+              <View key={r.label} style={styles.receiptRow}>
+                <Text style={styles.receiptLabel}>{r.label}</Text>
+                <Text style={styles.receiptVal}>{r.value}</Text>
+              </View>
+            ))}
+            <View style={styles.receiptRow}>
+              <Text style={styles.receiptLabel}>Urgency ×{pricing.urgencyMultiplier}</Text>
+              <Text style={[styles.receiptVal, { color: Colors.warning }]}>×{pricing.urgencyMultiplier}</Text>
+            </View>
+            <View style={styles.receiptRow}>
+              <Text style={styles.receiptLabel}>Demand ×{pricing.demandMultiplier}</Text>
+              <Text style={[styles.receiptVal, { color: Colors.warning }]}>×{pricing.demandMultiplier}</Text>
+            </View>
+            <View style={styles.receiptRow}>
+              <Text style={styles.receiptLabel}>Loyalty Discount</Text>
+              <Text style={[styles.receiptVal, { color: Colors.success }]}>−₨{pricing.loyaltyDiscount}</Text>
+            </View>
+          </>
+        ) : (
+          <Text style={styles.receiptNote}>Full breakdown available after pipeline run.</Text>
+        )}
+
         <View style={styles.receiptDivider} />
         <View style={styles.receiptTotal}>
           <Text style={styles.totalLabel}>TOTAL</Text>
@@ -134,20 +172,28 @@ export const BookingConfirmScreen: React.FC = () => {
         </View>
         <View style={styles.priceLock}>
           <Ionicons name="lock-closed-outline" size={13} color={Colors.success} />
-          <Text style={styles.priceLockText}>Price locked for 30 minutes</Text>
+          <Text style={styles.priceLockText}>Price locked · No hidden charges</Text>
         </View>
         {pricing?.fairnessNoteForUser && (
           <Text style={styles.fairnessNote}>{pricing.fairnessNoteForUser}</Text>
         )}
+        {pricing?.budgetMismatchRecovery && (
+          <View style={styles.recoveryBox}>
+            <Text style={styles.recoveryTitle}>⚠️ Budget Recovery Options</Text>
+            {pricing.budgetMismatchRecovery.map((r, i) => (
+              <Text key={i} style={styles.recoveryItem}>• {r}</Text>
+            ))}
+          </View>
+        )}
       </View>
 
-      {/* Notifications preview */}
-      <View style={styles.notifyCard}>
-        <Text style={styles.sectionLabel}>NOTIFICATIONS</Text>
+      {/* Notifications */}
+      <View style={styles.card}>
+        <Text style={styles.sectionLabel}>NOTIFICATIONS QUEUED</Text>
         {[
-          { icon: 'logo-whatsapp',     label: 'WhatsApp confirmation message' },
-          { icon: 'notifications',     label: 'Reminder 1 hour before' },
-          { icon: 'calendar',          label: 'Calendar event created' },
+          { icon: 'logo-whatsapp',  label: 'WhatsApp booking confirmation' },
+          { icon: 'notifications',  label: 'Reminder 1 hour before service' },
+          { icon: 'calendar',       label: 'Calendar event created' },
         ].map(n => (
           <View key={n.label} style={styles.notifyRow}>
             <Ionicons name={n.icon as any} size={16} color={Colors.primary} />
@@ -157,7 +203,7 @@ export const BookingConfirmScreen: React.FC = () => {
         ))}
       </View>
 
-      {/* Payment */}
+      {/* Payment selection */}
       <Text style={styles.sectionLabel}>PAYMENT METHOD</Text>
       <View style={styles.paymentRow}>
         {PAYMENT_METHODS.map(m => (
@@ -176,14 +222,14 @@ export const BookingConfirmScreen: React.FC = () => {
       <View style={styles.policyBox}>
         <Ionicons name="information-circle-outline" size={14} color={Colors.textMuted} />
         <Text style={styles.policyText}>
-          Cancellation policy: Free within 30 min of booking. ₨100 fee if cancelled within 2h of service.
-          No-show by provider triggers full refund automatically.
+          Free cancellation within 30 min of booking. ₨100 fee if cancelled within 2h of service.
+          Provider no-show → full automatic refund.
         </Text>
       </View>
 
       <Button label={`Confirm Booking — ₨${price.toLocaleString()}`}
         onPress={handleConfirm} variant="primary" size="lg" fullWidth style={styles.cta} />
-      <Button label="Change Provider" onPress={() => navigation.goBack()}
+      <Button label="← Change Provider" onPress={() => navigation.goBack()}
         variant="ghost" size="md" fullWidth />
     </ScrollView>
   );
@@ -193,22 +239,24 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   content: { padding: Spacing.base, gap: Spacing.md, paddingBottom: Spacing.xxxl },
   fallback: { flex: 1, backgroundColor: Colors.background, alignItems: 'center', justifyContent: 'center', padding: Spacing.xl, gap: Spacing.md },
-  fallbackText: { ...Typography.body, color: Colors.textMuted, textAlign: 'center' },
+  fallbackTitle: { ...Typography.h4, color: Colors.textPrimary },
+  fallbackSub: { ...Typography.bodySm, color: Colors.textMuted, textAlign: 'center' },
   providerBar: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, backgroundColor: Colors.card, borderRadius: Radius.lg, padding: Spacing.md, borderWidth: 1, borderColor: Colors.cardBorder },
-  avatarBox: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.primary + '22', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.primary },
-  avatarInitial: { fontSize: 20, fontWeight: '700', color: Colors.primary },
+  avatarBox: { width: 48, height: 48, borderRadius: 24, backgroundColor: Colors.primary + '22', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: Colors.primary },
+  avatarInitial: { fontSize: 22, fontWeight: '700', color: Colors.primary },
   providerInfo: { flex: 1 },
   providerName: { ...Typography.h4, color: Colors.textPrimary },
   providerMeta: { ...Typography.bodySm, color: Colors.textMuted, marginTop: 2 },
-  sectionLabel: { ...Typography.caption, color: Colors.textMuted, fontWeight: '700', letterSpacing: 1, marginBottom: Spacing.xs },
-  infoCard: { backgroundColor: Colors.card, borderRadius: Radius.lg, padding: Spacing.base, borderWidth: 1, borderColor: Colors.cardBorder, gap: Spacing.sm },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  infoLabel: { ...Typography.bodySm, color: Colors.textMuted },
-  infoVal: { ...Typography.bodySm, color: Colors.textPrimary, fontWeight: '600', textAlign: 'right', flex: 1, marginLeft: Spacing.sm },
-  receiptCard: { backgroundColor: Colors.card, borderRadius: Radius.lg, padding: Spacing.base, borderWidth: 1, borderColor: Colors.cardBorder, gap: Spacing.sm },
+  providerAddr: { ...Typography.caption, color: Colors.textDisabled, marginTop: 1 },
+  card: { backgroundColor: Colors.card, borderRadius: Radius.lg, padding: Spacing.base, borderWidth: 1, borderColor: Colors.cardBorder, gap: Spacing.sm },
+  sectionLabel: { ...Typography.caption, color: Colors.textMuted, fontWeight: '700', letterSpacing: 1 },
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  detailLabel: { ...Typography.bodySm, color: Colors.textMuted, width: 90 },
+  detailVal: { ...Typography.bodySm, color: Colors.textPrimary, fontWeight: '600', flex: 1, textAlign: 'right' },
   receiptRow: { flexDirection: 'row', justifyContent: 'space-between' },
   receiptLabel: { ...Typography.bodySm, color: Colors.textMuted },
   receiptVal: { ...Typography.bodySm, color: Colors.textSecondary, fontWeight: '600' },
+  receiptNote: { ...Typography.bodySm, color: Colors.textMuted, fontStyle: 'italic' },
   receiptDivider: { height: 1, backgroundColor: Colors.cardBorder },
   receiptTotal: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   totalLabel: { ...Typography.label, color: Colors.textPrimary, letterSpacing: 1 },
@@ -216,7 +264,9 @@ const styles = StyleSheet.create({
   priceLock: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   priceLockText: { ...Typography.caption, color: Colors.success },
   fairnessNote: { ...Typography.caption, color: Colors.textMuted, fontStyle: 'italic', lineHeight: 16 },
-  notifyCard: { backgroundColor: Colors.card, borderRadius: Radius.lg, padding: Spacing.base, borderWidth: 1, borderColor: Colors.cardBorder, gap: Spacing.sm },
+  recoveryBox: { backgroundColor: Colors.warning + '11', borderRadius: Radius.sm, padding: Spacing.sm, gap: 4 },
+  recoveryTitle: { ...Typography.label, color: Colors.warning },
+  recoveryItem: { ...Typography.bodySm, color: Colors.textSecondary },
   notifyRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   notifyText: { ...Typography.bodySm, color: Colors.textSecondary, flex: 1 },
   paymentRow: { flexDirection: 'row', gap: Spacing.sm },
@@ -227,11 +277,11 @@ const styles = StyleSheet.create({
   policyText: { ...Typography.caption, color: Colors.textMuted, flex: 1, lineHeight: 17 },
   cta: {},
   successRoot: { flex: 1, backgroundColor: Colors.background, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, padding: Spacing.xl },
-  successCircle: { width: 96, height: 96, borderRadius: 48, backgroundColor: Colors.success, alignItems: 'center', justifyContent: 'center' },
+  successCircle: { width: 100, height: 100, borderRadius: 50, backgroundColor: Colors.success, alignItems: 'center', justifyContent: 'center' },
   successTitle: { ...Typography.h2, color: Colors.textPrimary },
-  successId: { ...Typography.caption, color: Colors.textMuted, fontFamily: 'monospace' },
+  successId: { ...Typography.bodySm, color: Colors.textMuted, fontFamily: 'monospace' },
   successCode: { ...Typography.bodySm, color: Colors.primary, fontFamily: 'monospace' },
   successNote: { ...Typography.body, color: Colors.textSecondary, textAlign: 'center' },
   successReminder: { ...Typography.bodySm, color: Colors.primary, textAlign: 'center' },
-  successBtns: { width: '100%', gap: Spacing.sm },
+  successBtns: { width: '100%', gap: Spacing.sm, marginTop: Spacing.sm },
 });
