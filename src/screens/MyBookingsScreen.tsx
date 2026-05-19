@@ -106,22 +106,40 @@ export const MyBookingsScreen: React.FC = () => {
 
               <View style={styles.actions}>
                 {['pending', 'confirmed', 'provider_assigned', 'en_route', 'in_progress', 'feedback_pending'].includes(b.status) && (
-                  <Button 
-                    label="Track / Update" 
-                    variant="primary" 
-                    size="sm" 
-                    fullWidth
-                    onPress={() => navigation.navigate('FollowUpTimeline', { bookingId: b.id })}
-                  />
+                  <>
+                    <Button 
+                      label="Track / Update" 
+                      variant="primary" 
+                      size="sm" 
+                      style={{ flex: 1 }}
+                      onPress={() => navigation.navigate('FollowUpTimeline', { bookingId: b.id })}
+                    />
+                    <Button 
+                      label="View Trace" 
+                      variant="outline" 
+                      size="sm" 
+                      style={{ flex: 1 }}
+                      onPress={() => navigation.navigate('MainTabs', { screen: 'AgentTrace' } as any)}
+                    />
+                  </>
                 )}
                 {b.status === 'completed' && (
-                  <Button 
-                    label="Rebook Provider" 
-                    variant="outline" 
-                    size="sm" 
-                    fullWidth
-                    onPress={() => navigation.navigate('ProviderDetail', { providerId: b.providerId })}
-                  />
+                  <>
+                    <Button 
+                      label="Rebook Provider" 
+                      variant="primary" 
+                      size="sm" 
+                      style={{ flex: 1 }}
+                      onPress={() => navigation.navigate('ProviderDetail', { providerId: b.providerId })}
+                    />
+                    <Button 
+                      label="View Trace" 
+                      variant="outline" 
+                      size="sm" 
+                      style={{ flex: 1 }}
+                      onPress={() => navigation.navigate('MainTabs', { screen: 'AgentTrace' } as any)}
+                    />
+                  </>
                 )}
               </View>
             </View>

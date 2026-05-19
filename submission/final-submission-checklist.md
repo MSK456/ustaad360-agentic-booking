@@ -4,8 +4,17 @@
 - [x] Project name: **Ustaad360 — Agentic Home Services Booking**
 - [x] Tagline: "AI-powered, multilingual booking with a 10-agent pipeline"
 - [x] GitHub repo: `MSK456/ustaad360-agentic-booking`
-- [x] Git tag: `v0.5.0-final-qa-docs-polish`
-- [x] Previous tags: `v0.3.0-agent-pipeline`, `v0.4.0-end-to-end-booking`, `v0.4.1-end-to-end-booking-flow`
+- [x] Git tag: `v1.1.0-commercial-lifecycle`
+- [x] Previous tags: `v1.0.0-core`, `v0.5.0-final-qa-docs-polish`, `v0.4.0-end-to-end-booking`
+
+---
+
+## Submission Links
+- [ ] APK Drive link: [Insert Link Here]
+- [x] GitHub repo link: https://github.com/MSK456/ustaad360-agentic-booking
+- [ ] Product demo video link: [Insert Link Here]
+- [ ] Antigravity usage video link: [Insert Link Here]
+- [ ] Antigravity trace/logs zip link: [Insert Link Here]
 
 ---
 

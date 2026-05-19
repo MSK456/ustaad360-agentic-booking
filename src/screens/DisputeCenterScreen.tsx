@@ -22,9 +22,9 @@ export const DisputeCenterScreen: React.FC = () => {
   const [result, setResult]             = useState<ReturnType<typeof runDisputeAgent> | null>(null);
 
   const { result: storeResult } = useAgentStore();
-  const { getActiveBooking } = useBookingStore();
+  const { getActiveBookings } = useBookingStore();
   
-  const activeStoreBooking = getActiveBooking();
+  const activeStoreBooking = getActiveBookings()[0];
   const bookingId = storeResult?.booking?.bookingId ?? activeStoreBooking?.id ?? 'B-U360-DEMO';
   const providerName = storeResult?.selectedProvider?.provider?.name ?? 'Ustaad360 Provider';
   const price = activeStoreBooking?.quotedPrice ?? storeResult?.pricing?.finalEstimate ?? 1354;

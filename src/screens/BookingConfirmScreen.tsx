@@ -53,10 +53,40 @@ export const BookingConfirmScreen: React.FC = () => {
   const slot        = bookingData?.scheduledAt ?? 'Tomorrow at 09:00 AM';
   const address     = bookingData?.address ?? 'House 42, Gulberg III, Lahore';
 
-  const { addBooking } = useBookingStore();
+  const { addBooking, getActiveBookings } = useBookingStore();
 
   const handleConfirm = () => {
-    // If we don't have a booking for this provider, generate one now
+    const actives = getActiveBookings();
+    
+    // E. PROVIDER DOUBLE-BOOKING PREVENTION
+    const isDoubleBooked = actives.some(b => b.providerId === providerId && b.scheduledAt === slot);
+    if (isDoubleBooked) {
+      Alert.alert(
+        "Provider Unavailable",
+        "This provider has just been booked for this time slot. Please choose another provider or slot.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    // F. USER BOOKING OVERLAP WARNING
+    const isUserOverlapped = actives.some(b => b.scheduledAt === slot);
+    if (isUserOverlapped) {
+      Alert.alert(
+        "Overlap Warning",
+        "You already have another booking around this time. Do you want to continue?",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Continue anyway", onPress: processBooking }
+        ]
+      );
+      return;
+    }
+
+    processBooking();
+  };
+
+  const processBooking = () => {
     let finalBooking = bookingData;
     if (!finalBooking && rankedProvider && pricing) {
       const scheduling = runSchedulingAgent(rankedProvider, result!.intent);
@@ -78,14 +108,15 @@ export const BookingConfirmScreen: React.FC = () => {
         quotedPrice: price,
         userBudget: result?.intent?.maxBudget ?? 0,
         finalPrice: price,
-        paymentMethod: 'cash',
+        paymentMethod: payment as 'cash' | 'easypaisa' | 'jazzcash',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        traces: result?.traces || [],
       });
     }
 
     setConfirmed(true);
-    setTimeout(() => navigation.navigate('FollowUpTimeline', { bookingId }), 1400);
+    setTimeout(() => navigation.navigate('FollowUpTimeline', { bookingId: finalBooking?.bookingId || bookingId }), 1400);
   };
 
   if (!provider) {

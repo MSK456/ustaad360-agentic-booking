@@ -34,11 +34,37 @@ An agentic mobile app powered by Google Gemini where a user types or speaks in a
 - **Agent Trace Screen**: Full transparency of every AI decision
 - **Baseline Compare**: Side-by-side vs. simple non-agentic system
 
-## Platform
+## Platform & Architecture
 - React Native (Expo) mobile app → APK deliverable
-- Google Gemini API as the AI backbone
-- Firebase (Auth, Firestore, Cloud Messaging)
-- Mock/simulated backend for hackathon demo
+
+### Backend and Data Storage
+- **Current Prototype**: The hackathon prototype uses offline deterministic local data for speed and reliability during demos.
+- **Mock Data**: Provider data, reviews, pricing rules, and scenarios are synthetic mock data.
+- **State Management**: `Zustand` manages app state.
+- **Local Persistence**: `AsyncStorage` persists demo auth, sessions, bookings, and traces locally so the app remembers state between sessions.
+- **Agent Pipeline**: The 10-agent orchestration pipeline runs entirely locally in TypeScript.
+- **Privacy**: No real personal data is used.
+- **Simulations**: WhatsApp/call interactions and maps are simulated safely without external API dependencies.
+
+### Production Backend Plan
+When transitioning to a full production release, the app will migrate to:
+- **Auth**: Firebase Auth for real user login and verification.
+- **Database**: Firestore collections for robust real-time synchronization (`users`, `providers`, `bookings`, `reviews`, `traces`, `disputes`, `categories`).
+- **Orchestration**: Cloud Functions for secure agent orchestration off-device.
+- **NLU Engine**: Gemini structured output for high-accuracy multilingual parsing.
+- **Mapping**: Google Maps Places/Distance Matrix API for real distance and ETA calculation.
+- **Notifications**: Twilio/WhatsApp Business or equivalent SMS provider for transactional notifications.
+
+### Trace Logging
+Ustaad360 provides full visibility into the AI's decision-making process through two trace layers:
+
+1. **In-app Agent Trace**:
+   - `IntentAgent`, `DiscoveryAgent`, `RankingAgent`, `PricingAgent`, `SchedulingAgent`, `BookingAgent`, `NotificationAgent`, `FollowUpAgent`, `DisputeAgent`, `ReputationUpdateAgent`.
+   - *Visibility*: These traces are explicitly shown to the user and judges inside the app via the "Agent Trace" logs, demonstrating the chain of thought.
+
+2. **Antigravity Development Logs**:
+   - `workplans`, `task plans`, `prompts`, `debugging steps`, `terminal results`, `implementation notes`.
+   - *Visibility*: These detailed background logs will be zipped and submitted as transparent proof of the hackathon development process.
 
 ## Success Metrics (Demo)
 - User makes a request in Urdu slang → correct intent extracted ✅

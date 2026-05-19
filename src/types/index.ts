@@ -78,6 +78,7 @@ export interface Booking {
   createdAt: string;
   updatedAt?: string;
   completedAt?: string;
+  traces?: any[];
 }
 
 export interface Review {

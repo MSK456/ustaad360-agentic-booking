@@ -5,6 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { Badge } from '../components/Badge';
 import { useAgentStore } from '../store/agentStore';
+import { useBookingStore } from '../store/bookingStore';
 import { AgentTrace } from '../types/agent';
 
 const FALLBACK_TRACES: AgentTrace[] = [
@@ -113,9 +114,19 @@ function TraceCard({ entry }: { entry: AgentTrace }) {
 export const AgentTraceScreen: React.FC = () => {
   const [filter, setFilter] = useState<FilterType>('all');
   const { result } = useAgentStore();
+  const { getActiveBookings, getBookingById } = useBookingStore();
+  
+  const activeBookings = getActiveBookings();
+  let targetTraces = result?.traces;
 
-  const rawTraces = (result?.traces?.length ?? 0) > 0
-    ? result!.traces
+  if (!targetTraces || targetTraces.length === 0) {
+    if (activeBookings.length > 0 && activeBookings[0].traces && activeBookings[0].traces.length > 0) {
+      targetTraces = activeBookings[0].traces;
+    }
+  }
+
+  const rawTraces = (targetTraces?.length ?? 0) > 0
+    ? targetTraces!
     : FALLBACK_TRACES;
 
   const traces = filter === 'all' ? rawTraces : rawTraces.filter(t => t.status === filter);

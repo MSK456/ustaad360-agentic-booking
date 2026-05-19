@@ -19,7 +19,7 @@ interface AuthState {
   isHydrated: boolean;
   login: (profile: UserProfile) => Promise<void>;
   signup: (profile: UserProfile) => Promise<void>;
-  continueAsGuest: () => void;
+  continueAsGuest: () => Promise<void>;
   logout: () => Promise<void>;
   hydrate: () => Promise<void>;
   incrementBookings: () => Promise<void>;
@@ -59,8 +59,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch {}
   },
 
-  continueAsGuest: () => {
+  continueAsGuest: async () => {
     set({ user: null, isGuest: true });
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ user: null, isGuest: true }));
+    } catch {}
   },
 
   logout: async () => {

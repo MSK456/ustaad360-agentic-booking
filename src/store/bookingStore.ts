@@ -8,7 +8,7 @@ interface BookingStore {
   addBooking: (booking: Booking) => void;
   updateBookingStatus: (id: string, status: Booking['status']) => void;
   getBookingById: (id: string) => Booking | undefined;
-  getActiveBooking: () => Booking | undefined;
+  getActiveBookings: () => Booking[];
   clearBookings: () => void;
 }
 
@@ -18,7 +18,6 @@ export const useBookingStore = create<BookingStore>()(
       bookings: [],
       
       addBooking: (booking) => set((state) => {
-        // Prevent duplicates
         if (state.bookings.some(b => b.id === booking.id)) return state;
         return { bookings: [booking, ...state.bookings] };
       }),
@@ -31,8 +30,8 @@ export const useBookingStore = create<BookingStore>()(
         return get().bookings.find(b => b.id === id);
       },
       
-      getActiveBooking: () => {
-        return get().bookings.find(b => !['completed', 'cancelled', 'disputed'].includes(b.status));
+      getActiveBookings: () => {
+        return get().bookings.filter(b => !['completed', 'cancelled', 'disputed'].includes(b.status));
       },
 
       clearBookings: () => set({ bookings: [] })

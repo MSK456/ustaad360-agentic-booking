@@ -49,8 +49,8 @@ export const HomeScreen: React.FC = () => {
   const [query, setQuery] = useState('');
   const { run, isLoading } = useAgentStore();
   const { user, isGuest, logout } = useAuthStore();
-  const { getActiveBooking } = useBookingStore();
-  const activeBooking = getActiveBooking();
+  const { getActiveBookings } = useBookingStore();
+  const activeBookings = getActiveBookings();
 
   const handleSearch = async (text: string) => {
     const q = text.trim();
@@ -137,22 +137,42 @@ export const HomeScreen: React.FC = () => {
         </KeyboardAvoidingView>
 
         {/* Active Booking Card */}
-        {activeBooking && (
+        {activeBookings.length === 1 && (
           <TouchableOpacity 
             style={styles.activeBookingCard} 
-            onPress={() => navigation.navigate('FollowUpTimeline', { bookingId: activeBooking.id })}
+            onPress={() => navigation.navigate('FollowUpTimeline', { bookingId: activeBookings[0].id })}
           >
             <View style={styles.activeBookingHeader}>
               <View style={styles.activeBookingTitleRow}>
                 <Ionicons name="construct-outline" size={18} color={Colors.primary} />
                 <Text style={styles.activeBookingTitle}>Active Booking</Text>
               </View>
-              <Badge label={activeBooking.status.replace('_', ' ').toUpperCase()} variant="primary" />
+              <Badge label={activeBookings[0].status.replace('_', ' ').toUpperCase()} variant="primary" />
             </View>
-            <Text style={styles.activeBookingService}>{activeBooking.serviceCategory.replace('_', ' ').toUpperCase()}</Text>
-            <Text style={styles.activeBookingDesc} numberOfLines={1}>{activeBooking.description}</Text>
+            <Text style={styles.activeBookingService}>{activeBookings[0].serviceCategory.replace('_', ' ').toUpperCase()}</Text>
+            <Text style={styles.activeBookingDesc} numberOfLines={1}>{activeBookings[0].description}</Text>
             <View style={styles.activeBookingFooter}>
-              <Text style={styles.activeBookingTime}>{new Date(activeBooking.scheduledAt).toLocaleString()}</Text>
+              <Text style={styles.activeBookingTime}>{new Date(activeBookings[0].scheduledAt).toLocaleString()}</Text>
+              <Ionicons name="arrow-forward" size={16} color={Colors.textMuted} />
+            </View>
+          </TouchableOpacity>
+        )}
+
+        {activeBookings.length > 1 && (
+          <TouchableOpacity 
+            style={styles.activeBookingCard} 
+            onPress={() => navigation.navigate('MyBookings')}
+          >
+            <View style={styles.activeBookingHeader}>
+              <View style={styles.activeBookingTitleRow}>
+                <Ionicons name="list-outline" size={18} color={Colors.primary} />
+                <Text style={styles.activeBookingTitle}>Multiple Bookings Active</Text>
+              </View>
+              <Badge label={`${activeBookings.length} ACTIVE`} variant="primary" />
+            </View>
+            <Text style={styles.activeBookingService}>You have {activeBookings.length} active service bookings.</Text>
+            <View style={styles.activeBookingFooter}>
+              <Text style={styles.activeBookingTime}>View My Bookings</Text>
               <Ionicons name="arrow-forward" size={16} color={Colors.textMuted} />
             </View>
           </TouchableOpacity>
