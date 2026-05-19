@@ -2,7 +2,9 @@
 export type ServiceCategory =
   | 'plumber' | 'electrician' | 'carpenter'
   | 'ac_technician' | 'painter' | 'welder'
-  | 'mason' | 'cleaner' | 'mechanic' | 'pest_control';
+  | 'mason' | 'cleaner' | 'mechanic' | 'pest_control'
+  | 'beautician' | 'tutor' | 'driver'
+  | 'grocery' | 'fruits_vegetables' | 'meat';
 
 export type Urgency = 'low' | 'medium' | 'high' | 'emergency';
 export type BookingStatus =

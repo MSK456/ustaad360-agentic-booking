@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -85,7 +85,25 @@ export const BookingConfirmScreen: React.FC = () => {
         <Text style={styles.successId}>#{bookingId}</Text>
         <Text style={styles.successCode}>Code: {confCode}</Text>
         <Text style={styles.successNote}>{provider.name} · {slot}</Text>
-        <Text style={styles.successReminder}>📲 WhatsApp sent · 📅 Calendar updated · ⏰ Reminder set</Text>
+        <Text style={styles.successReminder}>📲 WhatsApp simulated · 📅 Calendar updated · ⏰ Reminder set</Text>
+        
+        <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md, width: '100%', marginBottom: Spacing.md }}>
+          <Button 
+            label="Call Provider" 
+            variant="outline" 
+            size="md" 
+            style={{ flex: 1 }}
+            onPress={() => Alert.alert('Call Simulated', `Dialing simulated number ${provider.phone} via Ustaad360 relay.`)}
+          />
+          <Button 
+            label="View WhatsApp" 
+            variant="outline" 
+            size="md" 
+            style={{ flex: 1 }}
+            onPress={() => Alert.alert('WhatsApp Simulated', `Message: "Salam ${provider.name}, I have booked you for ${slot}. My address is ..."`)}
+          />
+        </View>
+
         <View style={styles.successBtns}>
           <Button label="View Follow-up Timeline →" variant="primary" size="lg" fullWidth
             onPress={() => navigation.navigate('FollowUpTimeline', { bookingId })} />

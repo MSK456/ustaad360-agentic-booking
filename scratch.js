@@ -1,4 +1,6 @@
-import { Provider, TimeSlot } from '../types';
+const fs = require('fs');
+
+const fileContent = `import { Provider, TimeSlot } from '../types';
 
 const slot = (date: string, start: string, end: string, booked = false): TimeSlot => ({
   date, startTime: start, endTime: end, isBooked: booked,
@@ -502,3 +504,5 @@ export const MOCK_PROVIDERS: Provider[] = [
     verifiedBadge: true, profilePhotoUrl: 'https://i.pravatar.cc/150?img=24', joinedAt: '2018-05-15',
   },
 ];
+`;
+fs.writeFileSync('src/data/providers.ts', fileContent);

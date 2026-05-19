@@ -11,6 +11,12 @@ const SERVICE_MAP: Record<string, string[]> = {
   cleaner:       ['cleaner', 'cleaning', 'safai', 'sweep', 'mop'],
   mason:         ['mason', 'tiles', 'cement', 'wall crack', 'plaster'],
   mechanic:      ['mechanic', 'car repair', 'engine', 'vehicle'],
+  beautician:    ['beautician', 'salon', 'makeup', 'hair', 'facial', 'waxing', 'threading', 'beauty'],
+  tutor:         ['tutor', 'teacher', 'padhai', 'study', 'math', 'science', 'english', 'tuition'],
+  driver:        ['driver', 'driving', 'car drive', 'chauffeur', 'pick drop'],
+  grocery:       ['grocery', 'kiryana', 'rashan', 'mart', 'super store', 'items'],
+  fruits_vegetables: ['sabzi', 'vegetables', 'fruit', 'fruits', 'mandi'],
+  meat:          ['meat', 'gosht', 'chicken', 'beef', 'mutton', 'qeema'],
 };
 
 const MISSPELL_MAP: Record<string, string> = {
@@ -122,8 +128,9 @@ function detectBudget(text: string): { sensitivity: ParsedIntent['budgetSensitiv
   return { sensitivity: 'low', max };
 }
 
-function detectComplexity(text: string): ParsedIntent['jobComplexity'] {
+function detectComplexity(text: string, serviceType?: string): ParsedIntent['jobComplexity'] {
   const t = text.toLowerCase();
+  if (['grocery', 'fruits_vegetables', 'meat'].includes(serviceType ?? '')) return 'basic';
   if (['bilkul nahi', 'totally', 'installation', 'replace', 'new', 'badlo'].some(w => t.includes(w))) return 'complex';
   if (['check', 'dekho', 'small', 'chota', 'thora', 'minor'].some(w => t.includes(w))) return 'basic';
   return 'intermediate';
@@ -153,7 +160,7 @@ export function runIntentAgent(text: string, userLocation?: string): IntentAgent
   const timePref = detectTime(text);
   const location = detectLocation(text) ?? userLocation ?? null;
   const { sensitivity: budgetSensitivity, max: maxBudget } = detectBudget(text);
-  const complexity = detectComplexity(text);
+  const complexity = detectComplexity(text, service);
 
   // Calculate dynamic confidence
   let confidence = baseConfidence;

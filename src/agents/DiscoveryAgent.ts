@@ -18,13 +18,14 @@ export function runDiscoveryAgent(intent: ParsedIntent): DiscoveryAgentOutput {
 
   // Determine city context from location string
   const loc = (intent.location || '').toLowerCase();
-  let queryCity = '';
-  if (loc.includes('islamabad') || loc.includes('isb') || loc.match(/\b([fghi]-\d+)\b/i) || loc.includes('blue area')) {
-    queryCity = 'Islamabad';
-  } else if (loc.includes('lahore') || loc.includes('lhr') || loc.includes('johar') || loc.includes('gulberg')) {
+  let queryCity = 'Islamabad'; // DEFAULT CITY MUST BE ISLAMABAD
+
+  if (loc.includes('lahore') || loc.includes('lhr') || loc.includes('johar') || loc.includes('gulberg')) {
     queryCity = 'Lahore';
   } else if (loc.includes('karachi') || loc.includes('khi') || loc.includes('clifton')) {
     queryCity = 'Karachi';
+  } else if (loc.includes('islamabad') || loc.includes('isb') || loc.includes('rawalpindi') || loc.includes('pindi') || loc.match(/\b([fghi]-\d+)\b/i) || loc.includes('blue area') || loc.includes('bahria') || loc.includes('dha')) {
+    queryCity = 'Islamabad';
   }
 
   // Step 2: Filter strictly by city if known

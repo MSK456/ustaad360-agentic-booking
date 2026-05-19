@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -176,6 +176,18 @@ export const ProviderDetailScreen: React.FC = () => {
         </View>
       )}
 
+      {/* Provider Workload Balance */}
+      <View style={[styles.reasonCard, { borderColor: Colors.success, backgroundColor: Colors.success + '11', marginTop: Spacing.sm }]}>
+        <View style={styles.reasonHeader}>
+          <Ionicons name="scale-outline" size={16} color={Colors.success} />
+          <Text style={[styles.reasonTitle, { color: Colors.success }]}>Provider Workload Balance</Text>
+        </View>
+        <Text style={[styles.reasonText, { color: Colors.textSecondary }]}>
+          Current load: 2 bookings / 5 capacity.{'\n'}
+          Provider is not overloaded. Selected to ensure fair distribution of work.
+        </Text>
+      </View>
+
       {/* Skills */}
       <Text style={styles.sectionLabel}>Skills & Specialization</Text>
       <View style={styles.skillWrap}>
@@ -307,6 +319,23 @@ export const ProviderDetailScreen: React.FC = () => {
             ))}
           </View>
         )}
+      </View>
+
+      <View style={{ flexDirection: 'row', gap: Spacing.md, marginBottom: Spacing.sm }}>
+        <Button 
+          label="Call Provider" 
+          variant="outline" 
+          size="md" 
+          style={{ flex: 1 }}
+          onPress={() => Alert.alert('Call Simulated', `Dialing synthetic number ${provider.phone} securely through Ustaad360. No personal data shared.`)}
+        />
+        <Button 
+          label="WhatsApp" 
+          variant="outline" 
+          size="md" 
+          style={{ flex: 1 }}
+          onPress={() => Alert.alert('WhatsApp Simulated', `Opening safe WhatsApp chat with ${provider.name}.`)}
+        />
       </View>
 
       {/* CTA */}

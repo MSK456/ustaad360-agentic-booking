@@ -38,6 +38,11 @@ Ustaad360 stands out through several custom "Judge WOW" features that prove it's
 - **TrustShield™ System**: Provides a branded, visual assessment of a worker's reliability, on-time score, and review freshness (Low Risk, Watchlist, High Risk).
 - **FairPrice Meter™**: Dynamically compares the generated quote against the user's budget and the verified market range, alerting users transparently.
 - **Local Reality Check**: If a user's budget is mathematically impossible for the service, the agent triggers a warm recovery workflow (suggesting inspections) rather than crashing or showing fake results.
+- **Islamabad-First Realism**: Islamabad is the default city. Providers are properly mapped to areas like G-13, F-10, I-8, Blue Area. Cross-city matches are blocked.
+- **Daily Essentials Categories**: In addition to home services, the app supports agentic booking for Grocery, Fruits & Veg, and Meat.
+- **Communication Simulation**: Visible WhatsApp and Call buttons are available, triggering safe synthetic modals to simulate real-world coordination.
+- **Double-Booking Edge Case**: Simulates the edge case where two users try to book the exact same provider slot, demonstrating the agent's concurrency resolution.
+- **Provider Workload Visibility**: Transparently displays how the system balances work across providers to prevent burnout.
 - **Rescue Mode**: If a provider cancels after booking, the orchestrator autonomously activates Rescue Mode, protecting the price lock, assigning a backup within 1.5km, and updating the original provider's reliability score downward.
 - **Baseline Comparison Engine**: Visually proves why the agentic approach ("Best expected outcome") beats the standard baseline approach ("Nearest available worker") across 9 weighted factors.
 

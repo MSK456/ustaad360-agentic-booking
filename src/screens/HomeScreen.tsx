@@ -23,6 +23,19 @@ const QUICK_PROMPTS = [
   { text: 'Darwaza theek karna hai kal subah', icon: 'home-outline', category: 'Carpenter' },
 ];
 
+const QUICK_CATEGORIES = [
+  { id: 'ac', label: 'AC Repair', icon: 'snow-outline', prompt: 'AC repair chahiye G-13 Islamabad mein' },
+  { id: 'plumber', label: 'Plumber', icon: 'water-outline', prompt: 'Plumber bhej do G-13 mein 1500 rs mein' },
+  { id: 'electrician', label: 'Electrician', icon: 'flash-outline', prompt: 'Electrician chahiye F-10 Islamabad mein' },
+  { id: 'mechanic', label: 'Mechanic', icon: 'car-outline', prompt: 'Car mechanic chahiye G-13 Islamabad mein urgent' },
+  { id: 'beautician', label: 'Beautician', icon: 'color-palette-outline', prompt: 'Beautician chahiye F-10 Islamabad mein' },
+  { id: 'tutor', label: 'Tutor', icon: 'book-outline', prompt: 'Math tutor chahiye I-8 Islamabad mein' },
+  { id: 'driver', label: 'Driver', icon: 'car-sport-outline', prompt: 'Safe driver chahiye DHA Islamabad mein' },
+  { id: 'grocery', label: 'Grocery', icon: 'cart-outline', prompt: 'Grocery order karni hai G-13 Islamabad mein' },
+  { id: 'fruits_veg', label: 'Fruits & Veg', icon: 'leaf-outline', prompt: 'Fresh fruits aur vegetables chahiye G-13 Islamabad mein, budget 1500 hai' },
+  { id: 'meat', label: 'Meat', icon: 'restaurant-outline', prompt: 'Chicken aur beef order karna hai G-13 Islamabad mein' },
+];
+
 const STATS = [
   { label: 'Ustaads', value: '500+' },
   { label: 'Bookings', value: '12K+' },
@@ -115,8 +128,23 @@ export const HomeScreen: React.FC = () => {
           </View>
         </KeyboardAvoidingView>
 
+        {/* Quick Categories */}
+        <View style={styles.categoriesContainer}>
+          <Text style={styles.sectionTitle}>Daily Essentials & Services (Islamabad)</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
+            {QUICK_CATEGORIES.map(cat => (
+              <TouchableOpacity key={cat.id} style={styles.categoryChip} onPress={() => { setQuery(cat.prompt); handleSearch(cat.prompt); }}>
+                <View style={styles.categoryIconBg}>
+                  <Ionicons name={cat.icon as any} size={22} color={Colors.primary} />
+                </View>
+                <Text style={styles.categoryLabel}>{cat.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
         {/* Quick prompts */}
-        <Text style={styles.sectionTitle}>Quick Requests</Text>
+        <Text style={styles.sectionTitle}>Quick Scenarios</Text>
         <View style={styles.promptGrid}>
           {QUICK_PROMPTS.map((p) => (
             <TouchableOpacity
@@ -217,6 +245,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center',
   },
   searchBtnDisabled: { backgroundColor: Colors.textDisabled },
+  categoriesContainer: { marginBottom: Spacing.xl },
+  categoryScroll: { gap: Spacing.md, paddingHorizontal: 0, paddingBottom: 4 },
+  categoryChip: { alignItems: 'center', width: 72 },
+  categoryIconBg: { width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.primary + '15', alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1, borderColor: Colors.primary + '33' },
+  categoryLabel: { ...Typography.caption, color: Colors.textSecondary, textAlign: 'center', lineHeight: 14 },
   sectionTitle: { ...Typography.label, color: Colors.textMuted, marginBottom: Spacing.sm, marginTop: Spacing.sm },
   promptGrid: { gap: Spacing.sm, marginBottom: Spacing.lg },
   promptChip: {

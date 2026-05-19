@@ -97,6 +97,19 @@ const SCENARIOS: Scenario[] = [
   {
     id: 'F',
     letter: 'F',
+    title: 'Double Booking Conflict',
+    description: 'Two users try to book the exact same slot for the same provider. System detects conflict and suggests alternative.',
+    query: 'AC repair chahiye abhi G-13 mein',
+    expectedOutcome: 'Conflict detected trace. Alternate provider/slot suggested.',
+    icon: 'people-outline',
+    color: Colors.danger,
+    variant: 'danger',
+    navigateTo: 'AgentTrace' as any,
+    navigateParams: undefined,
+  },
+  {
+    id: 'G',
+    letter: 'G',
     title: 'Price Dispute',
     description: 'User disputes final price. DisputeAgent evaluates and decides refund/compensation.',
     query: 'I need a plumber tomorrow morning in DHA',
@@ -121,9 +134,8 @@ export const DemoScenariosScreen: React.FC = () => {
       
       if (scenario.id === 'E') {
         // Inject fake rescue trace
-        const { addTrace } = useAgentStore.getState();
-        addTrace({
-          id: `trace-recovery-${Date.now()}`,
+        useAgentStore.getState().addTrace({
+          id: `trace-rec-${Date.now()}`,
           timestamp: new Date().toISOString(),
           agentName: 'RecoveryAgent',
           action: 'Rescue Mode Activated',
@@ -135,6 +147,24 @@ export const DemoScenariosScreen: React.FC = () => {
           nextAction: 'Notify user of seamless backup',
           status: 'recovered',
           durationMs: 450,
+        });
+      }
+
+      // Add special trace injection for Scenario F (Double Booking)
+      if (scenario.id === 'F') {
+        useAgentStore.getState().addTrace({
+          id: `trace-conf-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          agentName: 'SchedulingAgent',
+          action: 'Concurrency Check',
+          inputSummary: 'Booking attempt for slot that was just taken by another user',
+          decision: 'Conflict detected. Reservation rejected.',
+          rationale: 'Redis/Local lock check failed. Slot 14:00-16:00 for Provider isb_ac1 was reserved 400ms ago by User B. Preventing double booking. Suggested alternative slot 16:00-18:00 or alternate Provider isb_ac2.',
+          confidence: 1.0,
+          dataUsed: ['live_slot_locks', 'provider_availability_db', 'concurrency_manager'],
+          nextAction: 'Present alternative slots to user',
+          status: 'warning',
+          durationMs: 120,
         });
       }
     } catch (e) {
