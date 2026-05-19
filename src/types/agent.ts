@@ -21,6 +21,7 @@ export interface ParsedIntent {
   originalText: string;
   detectedLanguage: 'urdu' | 'roman_urdu' | 'english' | 'mixed';
   confidence: number;
+  confidenceExplanation?: string;
   serviceType: string;
   issueSummary: string;
   location: string | null;

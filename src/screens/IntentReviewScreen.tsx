@@ -84,10 +84,20 @@ export const IntentReviewScreen: React.FC = () => {
         <>
           <Card elevated style={styles.intentCard}>
             <View style={styles.intentHeader}>
-              <Ionicons name="hardware-chip-outline" size={20} color={Colors.primary} />
-              <Text style={styles.intentTitle}>IntentAgent Result</Text>
-              <Badge label={`${Math.round(intent.confidence * 100)}% conf`} variant="success" />
+              <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
+                <Ionicons name="hardware-chip-outline" size={20} color={Colors.primary} />
+                <Text style={styles.intentTitle}>IntentAgent Result</Text>
+              </View>
+              <Badge label={`${Math.round(intent.confidence * 100)}% conf`} 
+                variant={intent.confidence >= 0.8 ? 'success' : intent.confidence >= 0.5 ? 'warning' : 'danger'} />
             </View>
+            
+            {intent.confidenceExplanation && (
+              <View style={styles.explanationBox}>
+                <Ionicons name="information-circle-outline" size={14} color={Colors.textMuted} />
+                <Text style={styles.explanationText}>{intent.confidenceExplanation}</Text>
+              </View>
+            )}
 
             <View style={styles.fieldGrid}>
               {fields.map((f) => (
@@ -143,8 +153,10 @@ const styles = StyleSheet.create({
   loadingText: { ...Typography.body, color: Colors.textPrimary },
   loadingSubtext: { ...Typography.bodySm, color: Colors.textMuted, textAlign: 'center' },
   intentCard: { gap: Spacing.md },
-  intentHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  intentTitle: { ...Typography.h4, color: Colors.textPrimary, flex: 1 },
+  intentHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
+  intentTitle: { ...Typography.h4, color: Colors.textPrimary },
+  explanationBox: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.inputBg, padding: Spacing.sm, borderRadius: Radius.sm, marginTop: -Spacing.xs },
+  explanationText: { ...Typography.caption, color: Colors.textMuted },
   fieldGrid: { gap: Spacing.sm },
   fieldRow: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,

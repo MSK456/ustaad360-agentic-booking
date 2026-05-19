@@ -203,6 +203,23 @@ Key insight: The agent may select a provider **1–2 km farther** than the neare
 
 ---
 
+## Data Storage Strategy
+
+**1. Demo Mode (Current)**
+- **User Session**: Mocked in memory (Zustand).
+- **Provider Pool**: Synthetic local JSON data (10 providers).
+- **Bookings & Traces**: Stored in-memory via Zustand (`useAgentStore`).
+- **Persistence**: Temporary, resets on app reload to ensure consistent demo reliability.
+
+**2. Production Scale (Future)**
+- **Users & Auth**: Firebase Auth + Firestore `users` collection.
+- **Providers**: Firestore `providers` collection with live availability syncing.
+- **Bookings**: Firestore `bookings` with real-time listeners for the timeline.
+- **Agent Traces**: Streamed to BigQuery for ML model improvement and analytics.
+- **Disputes & Reviews**: Stored in Firestore, triggering Cloud Functions for reputation updates.
+
+---
+
 ## Data Privacy Note
 
 This demo uses **100% synthetic, deterministic mock data**. No real:

@@ -11,6 +11,7 @@ import { RootStackParamList } from '../navigation/types';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { Badge } from '../components/Badge';
 import { useAgentStore } from '../store/agentStore';
+import { useAuthStore } from '../store/authStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -32,13 +33,17 @@ export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
   const [query, setQuery] = useState('');
   const { run, isLoading } = useAgentStore();
+  const { user, isGuest, logout } = useAuthStore();
 
   const handleSearch = async (text: string) => {
     const q = text.trim();
     if (q.length < 3) return;
-    await run(q);
+    await run(q, undefined, user?.city);
     navigation.navigate('IntentReview', { query: q });
   };
+
+  const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'G';
+  const firstName = user?.name ? user.name.split(' ')[0] : 'Guest';
 
   return (
     <View style={styles.root}>
@@ -48,14 +53,22 @@ export const HomeScreen: React.FC = () => {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {/* App Logo Header */}
+        <View style={styles.appHeader}>
+          <View style={styles.logoRow}>
+            <Ionicons name="construct" size={24} color={Colors.primary} />
+            <Text style={styles.appName}>Ustaad<Text style={styles.appVersion}>360</Text></Text>
+          </View>
+          <TouchableOpacity onPress={logout} style={styles.avatarCircle}>
+            <Text style={styles.avatarText}>{initial}</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Salam! 👋</Text>
+            <Text style={styles.greeting}>Salam, {firstName}! 👋</Text>
             <Text style={styles.subtitle}>Kya chahiye aaj?</Text>
-          </View>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>U</Text>
           </View>
         </View>
 
@@ -109,7 +122,7 @@ export const HomeScreen: React.FC = () => {
               onPress={() => handleSearch(p.text)}
             >
               <Ionicons name={p.icon as any} size={20} color={Colors.primary} />
-              <View>
+              <View style={{flex: 1}}>
                 <Text style={styles.promptText}>{p.text}</Text>
                 <Text style={styles.promptCategory}>{p.category}</Text>
               </View>
@@ -117,29 +130,31 @@ export const HomeScreen: React.FC = () => {
           ))}
         </View>
 
-        {/* Nav shortcuts */}
-        <Text style={styles.sectionTitle}>Explore Features</Text>
-        <View style={styles.featureGrid}>
-          {[
-            { label: 'My Bookings', icon: 'calendar-outline', screen: 'FollowUpTimeline', params: { bookingId: 'B-U360-2847' } },
-            { label: 'Find Providers', icon: 'search-outline', screen: 'ProviderList', params: undefined },
-            { label: 'Dispute Center', icon: 'shield-outline', screen: 'DisputeCenter', params: undefined },
-          ].map((f) => (
-            <TouchableOpacity
-              key={f.label}
-              style={styles.featureCard}
-              onPress={() => navigation.navigate(f.screen as any, f.params as any)}
-            >
-              <Ionicons name={f.icon as any} size={24} color={Colors.primary} />
-              <Text style={styles.featureLabel}>{f.label}</Text>
-            </TouchableOpacity>
-          ))}
+        {/* Why Ustaad360 */}
+        <Text style={styles.sectionTitle}>Why Ustaad360?</Text>
+        <View style={styles.whyCard}>
+          <View style={styles.whyRow}>
+            <Ionicons name="language" size={20} color={Colors.primary} />
+            <Text style={styles.whyText}>Understands Urdu & Roman Urdu with typos</Text>
+          </View>
+          <View style={styles.whyRow}>
+            <Ionicons name="bar-chart" size={20} color={Colors.primary} />
+            <Text style={styles.whyText}>10-factor smart provider ranking</Text>
+          </View>
+          <View style={styles.whyRow}>
+            <Ionicons name="cash" size={20} color={Colors.primary} />
+            <Text style={styles.whyText}>Transparent dynamic pricing (no hidden fees)</Text>
+          </View>
+          <View style={styles.whyRow}>
+            <Ionicons name="shield-checkmark" size={20} color={Colors.primary} />
+            <Text style={styles.whyText}>AI-powered dispute resolution & fairness</Text>
+          </View>
         </View>
 
         {/* Powered by */}
         <View style={styles.powered}>
           <Ionicons name="hardware-chip-outline" size={14} color={Colors.textMuted} />
-          <Text style={styles.poweredText}>Ustaad360 — Fully offline · 10-agent AI pipeline</Text>
+          <Text style={styles.poweredText}>Fully offline · 10-agent AI pipeline</Text>
         </View>
       </ScrollView>
     </View>
@@ -149,14 +164,19 @@ export const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   scroll: { padding: Spacing.base, paddingBottom: Spacing.xxxl },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.lg },
-  greeting: { ...Typography.h3, color: Colors.textPrimary },
-  subtitle: { ...Typography.body, color: Colors.textMuted, marginTop: 2 },
+  appHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.lg },
+  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  appName: { ...Typography.h3, color: '#FFFFFF', letterSpacing: 0.5 },
+  appVersion: { color: Colors.primary },
+  header: { marginBottom: Spacing.lg },
+  greeting: { ...Typography.h2, color: Colors.textPrimary },
+  subtitle: { ...Typography.body, color: Colors.textMuted, marginTop: 4 },
   avatarCircle: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center',
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: Colors.cardElevated, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: Colors.cardBorder,
   },
-  avatarText: { color: '#08111F', fontWeight: '800', fontSize: 18 },
+  avatarText: { color: Colors.primary, fontWeight: '800', fontSize: 16 },
   statsRow: {
     flexDirection: 'row', backgroundColor: Colors.card,
     borderRadius: Radius.lg, padding: Spacing.md,
@@ -195,13 +215,13 @@ const styles = StyleSheet.create({
   },
   promptText: { ...Typography.bodyMd, color: Colors.textPrimary },
   promptCategory: { ...Typography.caption, color: Colors.primary, marginTop: 2 },
-  featureGrid: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.lg },
-  featureCard: {
-    flex: 1, backgroundColor: Colors.card, borderRadius: Radius.lg,
-    padding: Spacing.md, alignItems: 'center', gap: Spacing.sm,
-    borderWidth: 1, borderColor: Colors.cardBorder,
+  whyCard: {
+    backgroundColor: Colors.card, borderRadius: Radius.lg,
+    padding: Spacing.md, borderWidth: 1, borderColor: Colors.cardBorder,
+    gap: Spacing.md, marginBottom: Spacing.lg,
   },
-  featureLabel: { ...Typography.bodySm, color: Colors.textSecondary, textAlign: 'center' },
-  powered: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: Spacing.lg },
+  whyRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  whyText: { ...Typography.bodySm, color: Colors.textSecondary, flex: 1 },
+  powered: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: Spacing.sm },
   poweredText: { ...Typography.caption, color: Colors.textMuted },
 });

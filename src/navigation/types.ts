@@ -10,6 +10,12 @@ export type RootStackParamList = {
   DisputeCenter: undefined;
 };
 
+export type AuthStackParamList = {
+  Welcome: undefined;
+  Login: undefined;
+  Signup: undefined;
+};
+
 export type TabParamList = {
   Home: undefined;
   AgentTrace: undefined;

@@ -6,8 +6,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { View } from 'react-native';
 
-import { RootStackParamList, TabParamList } from './types';
+import { RootStackParamList, TabParamList, AuthStackParamList } from './types';
 import { Colors, Typography } from '../theme';
+import { useAuthStore } from '../store/authStore';
 
 import { HomeScreen } from '../screens/HomeScreen';
 import { IntentReviewScreen } from '../screens/IntentReviewScreen';
@@ -20,7 +21,12 @@ import { DisputeCenterScreen } from '../screens/DisputeCenterScreen';
 import { BaselineCompareScreen } from '../screens/BaselineCompareScreen';
 import { DemoScenariosScreen } from '../screens/DemoScenariosScreen';
 
+import { WelcomeScreen } from '../screens/auth/WelcomeScreen';
+import { LoginScreen } from '../screens/auth/LoginScreen';
+import { SignupScreen } from '../screens/auth/SignupScreen';
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
 const screenOptions = {
@@ -30,6 +36,16 @@ const screenOptions = {
   headerShadowVisible: false,
   contentStyle: { backgroundColor: Colors.background },
 };
+
+function AuthNavigator() {
+  return (
+    <AuthStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.background } }}>
+      <AuthStack.Screen name="Welcome" component={WelcomeScreen} />
+      <AuthStack.Screen name="Login" component={LoginScreen} />
+      <AuthStack.Screen name="Signup" component={SignupScreen} />
+    </AuthStack.Navigator>
+  );
+}
 
 function MainTabs() {
   return (
@@ -58,26 +74,34 @@ function MainTabs() {
         ...screenOptions,
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Ustaad360', tabBarLabel: 'Home' }} />
-      <Tab.Screen name="AgentTrace" component={AgentTraceScreen} options={{ title: 'Agent Trace', tabBarLabel: 'Trace' }} />
-      <Tab.Screen name="BaselineCompare" component={BaselineCompareScreen} options={{ title: 'Compare', tabBarLabel: 'Compare' }} />
-      <Tab.Screen name="DemoScenarios" component={DemoScenariosScreen} options={{ title: 'Demo', tabBarLabel: 'Demo' }} />
+      <Tab.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
+      <Tab.Screen name="AgentTrace" component={AgentTraceScreen} options={{ title: 'Agent Logs' }} />
+      <Tab.Screen name="BaselineCompare" component={BaselineCompareScreen} options={{ title: 'System Compare' }} />
+      <Tab.Screen name="DemoScenarios" component={DemoScenariosScreen} options={{ title: 'Scenarios' }} />
     </Tab.Navigator>
   );
 }
 
-export function AppNavigator() {
+function MainNavigator() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={screenOptions}>
-        <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
-        <Stack.Screen name="IntentReview" component={IntentReviewScreen} options={{ title: 'Analyzing Request' }} />
-        <Stack.Screen name="ProviderList" component={ProviderListScreen} options={{ title: 'Ranked Providers' }} />
-        <Stack.Screen name="ProviderDetail" component={ProviderDetailScreen} options={{ title: 'Provider Profile' }} />
-        <Stack.Screen name="BookingConfirm" component={BookingConfirmScreen} options={{ title: 'Confirm Booking' }} />
-        <Stack.Screen name="FollowUpTimeline" component={FollowUpTimelineScreen} options={{ title: 'Booking Status' }} />
-        <Stack.Screen name="DisputeCenter" component={DisputeCenterScreen} options={{ title: 'Dispute Center' }} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <Stack.Navigator screenOptions={screenOptions}>
+      <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
+      <Stack.Screen name="IntentReview" component={IntentReviewScreen} options={{ title: 'Request Parsed' }} />
+      <Stack.Screen name="ProviderList" component={ProviderListScreen} options={{ title: 'Available Providers' }} />
+      <Stack.Screen name="ProviderDetail" component={ProviderDetailScreen} options={{ title: 'Provider Details' }} />
+      <Stack.Screen name="BookingConfirm" component={BookingConfirmScreen} options={{ title: 'Confirm Booking' }} />
+      <Stack.Screen name="FollowUpTimeline" component={FollowUpTimelineScreen} options={{ title: 'Track Service' }} />
+      <Stack.Screen name="DisputeCenter" component={DisputeCenterScreen} options={{ title: 'Dispute Center' }} />
+    </Stack.Navigator>
   );
 }
+
+export const AppNavigator = () => {
+  const { user, isGuest } = useAuthStore();
+  
+  return (
+    <NavigationContainer>
+      {user || isGuest ? <MainNavigator /> : <AuthNavigator />}
+    </NavigationContainer>
+  );
+};

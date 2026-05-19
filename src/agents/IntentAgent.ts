@@ -49,19 +49,19 @@ function detectLanguage(text: string): ParsedIntent['detectedLanguage'] {
   return 'english';
 }
 
-function detectService(raw: string): { service: string; confidence: number; skills: string[] } {
+function detectService(raw: string): { service: string; baseConfidence: number; skills: string[] } {
   const text = fixTypos(raw).toLowerCase();
   // Special: AC + kaam nahi / not working → ac_technician
   if ((text.includes('ac') || text.includes('air con')) &&
       (text.includes('kaam nahi') || text.includes('not work') || text.includes('chal nahi'))) {
-    return { service: 'ac_technician', confidence: 0.96, skills: ['AC repair', 'AC service'] };
+    return { service: 'ac_technician', baseConfidence: 0.96, skills: ['AC repair', 'AC service'] };
   }
-  let best = { service: 'general', confidence: 0.45, skills: [] as string[] };
+  let best = { service: 'general', baseConfidence: 0.45, skills: [] as string[] };
   for (const [svc, kws] of Object.entries(SERVICE_MAP)) {
     const hits = kws.filter(k => text.includes(k));
     if (hits.length > 0) {
-      const conf = Math.min(0.70 + hits.length * 0.08, 0.97);
-      if (conf > best.confidence) best = { service: svc, confidence: conf, skills: hits };
+      const conf = Math.min(0.70 + hits.length * 0.10, 0.98);
+      if (conf > best.baseConfidence) best = { service: svc, baseConfidence: conf, skills: hits };
     }
   }
   return best;
@@ -119,7 +119,17 @@ export interface IntentAgentOutput {
 
 export function runIntentAgent(text: string, userLocation?: string): IntentAgentOutput {
   const t0 = Date.now();
-  const { service, confidence, skills } = detectService(text);
+  
+  // Track typos
+  const fixedText = fixTypos(text);
+  const words = text.split(/\s+/);
+  let typoCount = 0;
+  for (const w of words) {
+    const lower = w.toLowerCase().replace(/[^a-z]/g, '');
+    if (MISSPELL_MAP[lower] && MISSPELL_MAP[lower] !== lower) typoCount++;
+  }
+
+  const { service, baseConfidence, skills } = detectService(text);
   const language = detectLanguage(text);
   const urgency  = detectUrgency(text);
   const timePref = detectTime(text);
@@ -127,9 +137,42 @@ export function runIntentAgent(text: string, userLocation?: string): IntentAgent
   const budget   = detectBudget(text);
   const complexity = detectComplexity(text);
 
+  // Calculate dynamic confidence
+  let confidence = baseConfidence;
+  let explanations: string[] = [];
+
+  if (typoCount > 0) {
+    confidence -= (typoCount * 0.03); // penalty for typos (mild)
+    explanations.push(`Recovered ${typoCount} typo(s)`);
+  }
+  
+  const isGeneric = ['banda bhejo', 'help', 'masla', 'problem'].some(w => text.toLowerCase().includes(w));
+  if (isGeneric && service === 'general') {
+    confidence -= 0.15;
+    explanations.push('Generic request detected');
+  }
+
+  if (language === 'mixed') {
+    confidence -= 0.02; // slight penalty for mixed syntax
+  }
+
   const missing: string[] = [];
-  if (!location)          missing.push('location');
-  if (service === 'general') missing.push('service type');
+  if (!location) {
+    missing.push('location');
+    confidence -= 0.10;
+    explanations.push('Missing location context');
+  }
+  if (service === 'general') {
+    missing.push('service type');
+  }
+  
+  if (missing.length === 0 && !isGeneric) {
+    explanations.push('High detail certainty');
+  }
+
+  // Bound confidence between 0.1 and 0.99
+  confidence = Math.max(0.1, Math.min(confidence, 0.99));
+  const explanationStr = explanations.join(' · ');
 
   const clarificationQuestion =
     confidence < 0.7 ? 'Could you specify what service you need and your area?'
@@ -140,6 +183,7 @@ export function runIntentAgent(text: string, userLocation?: string): IntentAgent
     originalText: text,
     detectedLanguage: language,
     confidence,
+    confidenceExplanation: explanationStr,
     serviceType: service,
     issueSummary: `${service.replace('_', ' ')} needed — ${urgency} urgency`,
     location,
@@ -158,7 +202,7 @@ export function runIntentAgent(text: string, userLocation?: string): IntentAgent
     action: 'Parse and classify user request',
     inputSummary: `"${text.slice(0, 90)}"`,
     decision: `${service} | ${language} | urgency: ${urgency} | time: ${timePref}`,
-    rationale: `Language: ${language} (confidence ${Math.round(confidence * 100)}%). Service matched via keyword analysis. Location: ${location ?? 'not found'}. Budget sensitivity: ${budget}. Complexity: ${complexity}.`,
+    rationale: `Language: ${language} (confidence ${Math.round(confidence * 100)}%). ${explanationStr}. Service matched via keyword analysis. Location: ${location ?? 'not found'}.`,
     confidence,
     dataUsed: ['user_text', 'keyword_dictionary', 'typo_normalizer', 'language_detector'],
     nextAction: confidence >= 0.7 ? 'DiscoveryAgent' : 'Clarification required',
