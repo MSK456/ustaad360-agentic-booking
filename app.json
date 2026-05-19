@@ -8,6 +8,9 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "splash": {
+      "backgroundColor": "#08111F"
+    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.ustaad360.app"
@@ -20,6 +23,11 @@
     },
     "plugins": [
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "fbfd1bf9-e740-4b14-870a-ef1248ddc7b8"
+      }
+    }
   }
 }
