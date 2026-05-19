@@ -157,6 +157,7 @@ export const BookingConfirmScreen: React.FC = () => {
           finalEstimate={pricing.finalEstimate}
           budgetFit={pricing.budgetFit}
           isBudgetMismatch={pricing.isBudgetMismatch}
+          pricingModel={pricing.pricingModel}
         />
       )}
 
@@ -166,17 +167,38 @@ export const BookingConfirmScreen: React.FC = () => {
 
         {pricing ? (
           <>
-            {[
-              { label: 'Base Rate',           value: `₨${pricing.baseRate}`                },
-              { label: 'Distance Surcharge',  value: `₨${pricing.distanceSurcharge}`       },
-              { label: 'Complexity Fee',      value: `₨${pricing.complexityFee}`           },
-              { label: 'Provider Premium',    value: `₨${pricing.providerPremium}`         },
-            ].map(r => (
-              <View key={r.label} style={styles.receiptRow}>
-                <Text style={styles.receiptLabel}>{r.label}</Text>
-                <Text style={styles.receiptVal}>{r.value}</Text>
-              </View>
-            ))}
+            {pricing.pricingModel === 'daily_essential' ? (
+              <>
+                {pricing.items?.map((item: any, i: number) => (
+                  <View key={`item-${i}`} style={styles.receiptRow}>
+                    <Text style={styles.receiptLabel}>{item.name} {item.quantity}{item.unit} × ₨{item.unitPrice}</Text>
+                    <Text style={styles.receiptVal}>₨{item.subtotal}</Text>
+                  </View>
+                ))}
+                <View style={styles.receiptRow}>
+                  <Text style={styles.receiptLabel}>Delivery Fee</Text>
+                  <Text style={styles.receiptVal}>₨{pricing.deliveryFee}</Text>
+                </View>
+                <View style={styles.receiptRow}>
+                  <Text style={styles.receiptLabel}>Packaging Fee</Text>
+                  <Text style={styles.receiptVal}>₨{pricing.packagingFee}</Text>
+                </View>
+              </>
+            ) : (
+              <>
+                {[
+                  { label: 'Visit / Base Rate',   value: `₨${pricing.baseRate}`                },
+                  { label: 'Distance Surcharge',  value: `₨${pricing.distanceSurcharge}`       },
+                  { label: 'Complexity Fee',      value: `₨${pricing.complexityFee}`           },
+                  { label: 'Provider Premium',    value: `₨${pricing.providerPremium}`         },
+                ].map(r => (
+                  <View key={r.label} style={styles.receiptRow}>
+                    <Text style={styles.receiptLabel}>{r.label}</Text>
+                    <Text style={styles.receiptVal}>{r.value}</Text>
+                  </View>
+                ))}
+              </>
+            )}
             <View style={styles.receiptRow}>
               <Text style={styles.receiptLabel}>Urgency ×{pricing.urgencyMultiplier}</Text>
               <Text style={[styles.receiptVal, { color: Colors.warning }]}>×{pricing.urgencyMultiplier}</Text>

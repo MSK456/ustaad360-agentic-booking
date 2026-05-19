@@ -27,6 +27,7 @@ export function runPricingAgent(
   const isHighDemand = intent.urgency === 'high' || intent.urgency === 'emergency';
 
   const calc = calculatePrice({
+    serviceType:     intent.serviceType,
     baseRate:        provider.provider.basePricePerHour,
     distanceKm:      provider.distanceKm,
     urgency:         URGENCY_MAP[intent.urgency] ?? 'medium',
@@ -35,6 +36,7 @@ export function runPricingAgent(
     isHighDemand,
     isReturningUser,
     userBudget,
+    items:           intent.parsedItems,
   });
 
   const pricing: PricingResult = {

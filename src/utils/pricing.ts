@@ -1,4 +1,7 @@
+import { ParsedItem, PricingResult } from '../types/agent';
+
 export interface PricingInput {
+  serviceType: string;
   baseRate: number;
   distanceKm: number;
   urgency: 'low' | 'medium' | 'high' | 'emergency';
@@ -7,53 +10,94 @@ export interface PricingInput {
   isHighDemand?: boolean;
   isReturningUser?: boolean;
   userBudget?: number;
-}
-
-export interface PricingOutput {
-  baseRate: number;
-  distanceSurcharge: number;
-  urgencyMultiplier: number;
-  complexityFee: number;
-  providerPremium: number;
-  demandMultiplier: number;
-  loyaltyDiscount: number;
-  finalEstimate: number;
-  fairnessNoteForUser: string;
-  fairnessNoteForProvider: string;
-  budgetFit: 'unknown' | 'within_budget' | 'slightly_over' | 'over_budget';
-  userBudget?: number;
-  gapAmount?: number;
-  gapPercent?: number;
-  isBudgetMismatch: boolean;
-  explanation: string;
-  recoveryOptions?: string[];
+  items?: ParsedItem[];
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────
-const COMPLEXITY_FEE   = { basic: 0, intermediate: 600, complex: 1200 };
 const URGENCY_MULT     = { low: 1.0, medium: 1.0, high: 1.3, emergency: 1.5 };
-const DISTANCE_FREE_KM = 2;
-const DISTANCE_RATE    = 60;   // Rs per km after first 2km
 const DEMAND_MULT_HIGH = 1.15;
-const LOYALTY_DISC     = 100;
+const LOYALTY_DISC     = 50;
 
-export function calculatePrice(input: PricingInput): PricingOutput {
-  const distanceSurcharge = Math.max(0, input.distanceKm - DISTANCE_FREE_KM) * DISTANCE_RATE;
+function getComplexityFee(serviceType: string, complexity: string): number {
+  if (['grocery', 'fruits_vegetables', 'meat'].includes(serviceType)) return 0;
+  
+  if (complexity === 'basic') return 0;
+  
+  if (complexity === 'intermediate') {
+    if (['plumber', 'electrician'].includes(serviceType)) return 400;
+    if (['ac_technician', 'mechanic'].includes(serviceType)) return 600;
+    if (['beautician'].includes(serviceType)) return 800;
+    return 300;
+  }
+  
+  // complex
+  if (['plumber', 'electrician'].includes(serviceType)) return 1000;
+  if (['ac_technician', 'mechanic'].includes(serviceType)) return 2000;
+  return 1500;
+}
+
+export function calculatePrice(input: PricingInput): PricingResult {
+  const isDailyEssential = ['grocery', 'fruits_vegetables', 'meat'].includes(input.serviceType);
+
+  let distanceSurcharge = 0;
+  if (isDailyEssential) {
+    distanceSurcharge = Math.max(0, input.distanceKm - 2) * 25;
+    distanceSurcharge = Math.min(distanceSurcharge, 200); // cap at 200
+  } else {
+    distanceSurcharge = Math.max(0, input.distanceKm - 3) * 30;
+    distanceSurcharge = Math.min(distanceSurcharge, 250); // cap at 250
+  }
+
   const urgencyMultiplier = URGENCY_MULT[input.urgency];
-  const complexityFee     = COMPLEXITY_FEE[input.complexity];
+  const complexityFee     = getComplexityFee(input.serviceType, input.complexity);
   const providerPremium   = input.providerPremium ?? 0;
   const demandMultiplier  = input.isHighDemand ? DEMAND_MULT_HIGH : 1.0;
   const loyaltyDiscount   = input.isReturningUser ? LOYALTY_DISC : 0;
 
-  const subtotal =
-    (input.baseRate + Math.round(distanceSurcharge) + complexityFee + providerPremium)
-    * urgencyMultiplier
-    * demandMultiplier;
+  let finalEstimate = 0;
+  let explanation = '';
+  
+  let itemSubtotal = 0;
+  let deliveryFee = 0;
+  let packagingFee = 0;
 
-  const finalEstimate = Math.round(subtotal - loyaltyDiscount);
+  if (isDailyEssential) {
+    itemSubtotal = input.items?.reduce((sum, item) => sum + item.subtotal, 0) || 0;
+    deliveryFee = Math.round(distanceSurcharge);
+    packagingFee = 50;
+
+    let subtotal = (itemSubtotal + deliveryFee + packagingFee) * urgencyMultiplier * demandMultiplier;
+    finalEstimate = Math.round(subtotal - loyaltyDiscount);
+
+    explanation = 
+      `Items ₨${itemSubtotal}` +
+      ` + delivery ₨${deliveryFee}` +
+      ` + packaging ₨${packagingFee}` +
+      ` × urgency ${urgencyMultiplier}` +
+      (input.isHighDemand ? ' × demand 1.15' : '') +
+      (loyaltyDiscount ? ` − loyalty ₨${loyaltyDiscount}` : '') +
+      ` = ₨${finalEstimate}`;
+  } else {
+    let subtotal =
+      (input.baseRate + Math.round(distanceSurcharge) + complexityFee + providerPremium)
+      * urgencyMultiplier
+      * demandMultiplier;
+      
+    finalEstimate = Math.round(subtotal - loyaltyDiscount);
+
+    explanation =
+      `Base ₨${input.baseRate}` +
+      ` + travel ₨${Math.round(distanceSurcharge)}` +
+      ` + complexity ₨${complexityFee}` +
+      (providerPremium ? ` + premium ₨${providerPremium}` : '') +
+      ` × urgency ${urgencyMultiplier}` +
+      (input.isHighDemand ? ' × demand 1.15' : '') +
+      (loyaltyDiscount ? ` − loyalty ₨${loyaltyDiscount}` : '') +
+      ` = ₨${finalEstimate}`;
+  }
 
   // Budget fit
-  let budgetFit: PricingOutput['budgetFit'] = 'unknown';
+  let budgetFit: PricingResult['budgetFit'] = 'unknown';
   let gapAmount = 0;
   let gapPercent = 0;
 
@@ -72,26 +116,27 @@ export function calculatePrice(input: PricingInput): PricingOutput {
     }
   }
 
-  const explanation =
-    `Base ₨${input.baseRate}` +
-    ` + travel ₨${Math.round(distanceSurcharge)}` +
-    ` + complexity ₨${complexityFee}` +
-    (providerPremium ? ` + premium ₨${providerPremium}` : '') +
-    ` × urgency ${urgencyMultiplier}` +
-    (input.isHighDemand ? ' × demand 1.15' : '') +
-    (loyaltyDiscount ? ` − loyalty ₨${loyaltyDiscount}` : '') +
-    ` = ₨${finalEstimate}`;
-
   // Recovery suggestions when over budget
-  const recoveryOptions: string[] | undefined = budgetFit === 'over_budget' ? [
-    'Choose a lower-cost provider from the ranked list',
-    'Book an off-peak morning slot to avoid demand surcharge',
-    'Reduce scope to basic inspection first',
-    'Increase your budget to ₨' + Math.round(finalEstimate * 1.05),
-    'Request human escalation for a custom quote',
-  ] : undefined;
+  let recoveryOptions: string[] | undefined;
+  if (budgetFit === 'over_budget') {
+    if (isDailyEssential) {
+      recoveryOptions = [
+        'Reduce the quantity of items',
+        'Choose a lower-cost vendor',
+        'Increase your budget to ₨' + Math.round(finalEstimate * 1.05),
+      ];
+    } else {
+      recoveryOptions = [
+        'Choose a lower-cost provider from the ranked list',
+        'Book an off-peak morning slot to avoid demand surcharge',
+        'Reduce scope to basic inspection first',
+        'Increase your budget to ₨' + Math.round(finalEstimate * 1.05),
+      ];
+    }
+  }
 
   return {
+    pricingModel: isDailyEssential ? 'daily_essential' : 'service',
     baseRate: input.baseRate,
     distanceSurcharge: Math.round(distanceSurcharge),
     urgencyMultiplier,
@@ -99,15 +144,19 @@ export function calculatePrice(input: PricingInput): PricingOutput {
     providerPremium,
     demandMultiplier,
     loyaltyDiscount,
+    
+    itemSubtotal,
+    deliveryFee,
+    packagingFee,
+    items: input.items,
+
     finalEstimate,
-    fairnessNoteForUser:
-      `This price was calculated transparently using distance, urgency, and job complexity. Platform fee of 5% is included.`,
-    fairnessNoteForProvider:
-      `Provider receives ₨${Math.round(finalEstimate * 0.85)} after platform fee. Premium is added for providers with rating ≥ 4.5.`,
+    fairnessNoteForUser: isDailyEssential ? 'Prices are verified against Islamabad Mandi rates.' : 'Final quote protected by Ustaad360 Fair Price Guarantee.',
+    fairnessNoteForProvider: 'Estimated total payout includes performance bonuses.',
     budgetFit,
     userBudget: input.userBudget,
-    gapAmount,
-    gapPercent,
+    gapAmount: gapAmount > 0 ? gapAmount : undefined,
+    gapPercent: gapPercent > 0 ? gapPercent : undefined,
     isBudgetMismatch: budgetFit === 'over_budget',
     explanation,
     recoveryOptions,

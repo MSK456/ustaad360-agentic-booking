@@ -61,7 +61,8 @@ export const ProviderDetailScreen: React.FC = () => {
   const { provider, finalScore, factorScores, badges, riskFlags,
           whyRecommended, whyNotClosestProvider, estimatedPrice, distanceKm, travelTimeMin } = rankedProvider;
 
-  const pricingDisplay = pricing ?? {
+  const pricingDisplay: any = pricing ?? {
+    pricingModel: 'service',
     baseRate: provider.basePricePerHour,
     distanceSurcharge: Math.round(Math.max(0, distanceKm - 2) * 60),
     urgencyMultiplier: 1.0,
@@ -69,6 +70,10 @@ export const ProviderDetailScreen: React.FC = () => {
     providerPremium: provider.rating >= 4.7 ? 200 : 0,
     demandMultiplier: 1.0,
     loyaltyDiscount: 100,
+    itemSubtotal: 0,
+    deliveryFee: 0,
+    packagingFee: 0,
+    items: [],
     finalEstimate: estimatedPrice,
     fairnessNoteForUser: 'Price calculated transparently using distance, urgency, and job complexity.',
     fairnessNoteForProvider: `Provider receives ₨${Math.round(estimatedPrice * 0.85)} after platform fee.`,
@@ -121,6 +126,7 @@ export const ProviderDetailScreen: React.FC = () => {
         finalEstimate={pricingDisplay.finalEstimate}
         budgetFit={pricingDisplay.budgetFit}
         isBudgetMismatch={pricingDisplay.isBudgetMismatch}
+        pricingModel={pricingDisplay.pricingModel}
       />
 
       {/* Quick stats */}
@@ -262,17 +268,38 @@ export const ProviderDetailScreen: React.FC = () => {
       {/* Price Breakdown */}
       <Text style={styles.sectionLabel}>Price Breakdown</Text>
       <View style={styles.priceCard}>
-        {[
-          { label: 'Base Rate',        value: `₨${pricingDisplay.baseRate}` },
-          { label: 'Distance Surcharge', value: `₨${pricingDisplay.distanceSurcharge}` },
-          { label: 'Complexity Fee',   value: `₨${pricingDisplay.complexityFee}` },
-          { label: 'Provider Premium', value: `₨${pricingDisplay.providerPremium}` },
-        ].map(row => (
-          <View key={row.label} style={styles.priceRow}>
-            <Text style={styles.priceLabel}>{row.label}</Text>
-            <Text style={styles.priceVal}>{row.value}</Text>
-          </View>
-        ))}
+        {pricingDisplay.pricingModel === 'daily_essential' ? (
+          <>
+            {pricingDisplay.items?.map((item: any, i: number) => (
+              <View key={`item-${i}`} style={styles.priceRow}>
+                <Text style={styles.priceLabel}>{item.name} {item.quantity}{item.unit} × ₨{item.unitPrice}</Text>
+                <Text style={styles.priceVal}>₨{item.subtotal}</Text>
+              </View>
+            ))}
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>Delivery Fee</Text>
+              <Text style={styles.priceVal}>₨{pricingDisplay.deliveryFee}</Text>
+            </View>
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>Packaging Fee</Text>
+              <Text style={styles.priceVal}>₨{pricingDisplay.packagingFee}</Text>
+            </View>
+          </>
+        ) : (
+          <>
+            {[
+              { label: 'Visit / Base Rate',  value: `₨${pricingDisplay.baseRate}` },
+              { label: 'Distance Surcharge', value: `₨${pricingDisplay.distanceSurcharge}` },
+              { label: 'Complexity Fee',     value: `₨${pricingDisplay.complexityFee}` },
+              { label: 'Provider Premium',   value: `₨${pricingDisplay.providerPremium}` },
+            ].map(row => (
+              <View key={row.label} style={styles.priceRow}>
+                <Text style={styles.priceLabel}>{row.label}</Text>
+                <Text style={styles.priceVal}>{row.value}</Text>
+              </View>
+            ))}
+          </>
+        )}
         <View style={styles.priceDivider} />
         {[
           { label: `Urgency ×`, value: `×${pricingDisplay.urgencyMultiplier}` },

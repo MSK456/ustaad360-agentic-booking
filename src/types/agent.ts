@@ -32,6 +32,7 @@ export interface ParsedIntent {
   jobComplexity: 'basic' | 'intermediate' | 'complex';
   missingFields: string[];
   clarificationQuestion: string | null;
+  parsedItems?: ParsedItem[];
 }
 
 export type ProviderBadge =
@@ -65,7 +66,16 @@ export interface RankedProviderResult {
   travelTimeMin: number;
 }
 
+export interface ParsedItem {
+  name: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  subtotal: number;
+}
+
 export interface PricingResult {
+  pricingModel: 'service' | 'daily_essential';
   baseRate: number;
   distanceSurcharge: number;
   urgencyMultiplier: number;
@@ -73,6 +83,13 @@ export interface PricingResult {
   providerPremium: number;
   demandMultiplier: number;
   loyaltyDiscount: number;
+  
+  // Daily essentials fields
+  itemSubtotal?: number;
+  deliveryFee?: number;
+  packagingFee?: number;
+  items?: ParsedItem[];
+
   finalEstimate: number;
   fairnessNoteForUser: string;
   fairnessNoteForProvider: string;

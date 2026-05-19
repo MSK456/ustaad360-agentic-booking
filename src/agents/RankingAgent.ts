@@ -7,6 +7,7 @@ import {
   computeTravelTimeScore, computePriceFitScore, computeCancellationScore,
   computeFairnessScore, computeFinalScore,
 } from '../utils/scoring';
+import { calculatePrice } from '../utils/pricing';
 
 // Simulated distance/travel (deterministic based on provider ID)
 const PROVIDER_DISTANCES: Record<string, { km: number; min: number }> = {
@@ -79,7 +80,21 @@ export function runRankingAgent(
 
   const scored: RankedProviderResult[] = providers.map(p => {
     const { km, min } = getDistance(p.id);
-    const estimatedPrice = p.basePricePerHour + (km > 2 ? (km - 2) * 60 : 0);
+    
+    // Call calculatePrice directly to get realistic estimate
+    const calc = calculatePrice({
+      serviceType: intent.serviceType,
+      baseRate: p.basePricePerHour,
+      distanceKm: km,
+      urgency: intent.urgency as any,
+      complexity: intent.jobComplexity as any,
+      providerPremium: p.rating >= 4.7 ? 200 : 0,
+      isHighDemand: intent.urgency === 'high' || intent.urgency === 'emergency',
+      isReturningUser: true,
+      userBudget,
+      items: intent.parsedItems,
+    });
+    const estimatedPrice = calc.finalEstimate;
 
     const f: FactorScores = {
       availabilityScore:    computeAvailabilityScore(p.isAvailable, p.availableSlots.length > 0),

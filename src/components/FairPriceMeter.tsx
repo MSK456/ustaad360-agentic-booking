@@ -10,19 +10,26 @@ interface FairPriceMeterProps {
   marketMax?: number;
   budgetFit: 'unknown' | 'within_budget' | 'slightly_over' | 'over_budget';
   isBudgetMismatch: boolean;
+  pricingModel?: 'service' | 'daily_essential';
 }
 
 export const FairPriceMeter: React.FC<FairPriceMeterProps> = ({
-  userBudget, finalEstimate, marketMin = 1800, marketMax = 2500, budgetFit, isBudgetMismatch
+  userBudget, finalEstimate, marketMin = 1800, marketMax = 2500, budgetFit, isBudgetMismatch, pricingModel
 }) => {
   let status = "Fair Price";
   let statusColor: string = Colors.primary;
   let recommendation = "Transparent fair quote generated based on urgency and distance.";
 
   if (isBudgetMismatch) {
-    status = userBudget && userBudget < marketMin ? "Below realistic market range" : "Over budget";
-    statusColor = Colors.danger;
-    recommendation = "Inspection only or increase budget. The requested budget is below verified local rates.";
+    if (pricingModel === 'daily_essential') {
+      status = "Exceeds Budget";
+      statusColor = Colors.danger;
+      recommendation = `Your items cost around ₨${finalEstimate} before delivery, which exceeds your ₨${userBudget} budget.`;
+    } else {
+      status = userBudget && userBudget < marketMin ? "Below realistic market range" : "Over budget";
+      statusColor = Colors.danger;
+      recommendation = `₨${userBudget} is below the realistic market range for this service in Islamabad. You can book inspection only, increase budget, or join waitlist.`;
+    }
   } else if (budgetFit === 'slightly_over') {
     status = "Slightly over budget";
     statusColor = Colors.warning;

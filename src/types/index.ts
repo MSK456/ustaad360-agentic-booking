@@ -42,6 +42,7 @@ export interface Provider {
   basePricePerHour: number;
   minCharge: number;
   travelChargePerKm: number;
+  priceTier?: 'budget' | 'standard' | 'premium';
   verifiedBadge: boolean;
   profilePhotoUrl: string;
   joinedAt: string;

@@ -4,7 +4,7 @@ import { isoNow } from '../utils/dateTime';
 // ─── Keyword maps ─────────────────────────────────────────────────────────
 const SERVICE_MAP: Record<string, string[]> = {
   plumber:       ['plumber', 'plmbr', 'plmber', 'nala', 'pipe', 'paani', 'water', 'drain', 'tap', 'bore', 'leak'],
-  electrician:   ['electrician', 'bijli', 'wiring', 'electric', 'light', 'fan', 'switch', 'current'],
+  electrician:   ['electrician', 'bijli', 'wiring', 'electric', 'light', 'fan', 'switch', 'current', 'socket', 'breaker', 'meter', 'bulb', 'pankha'],
   ac_technician: ['ac', 'air condition', 'aircon', 'cooling', 'gas refill', 'thermostat', 'technician'],
   carpenter:     ['carpenter', 'wood', 'darwaza', 'door', 'furniture', 'cabinet', 'polish'],
   painter:       ['painter', 'paint', 'rang', 'colour', 'color'],
@@ -136,6 +136,60 @@ function detectComplexity(text: string, serviceType?: string): ParsedIntent['job
   return 'intermediate';
 }
 
+import { ITEM_CATALOG, CatalogItem } from '../data/itemCatalog';
+import { ParsedItem } from '../types/agent';
+
+function extractItems(text: string, serviceType: string): ParsedItem[] {
+  if (!['grocery', 'fruits_vegetables', 'meat'].includes(serviceType)) return [];
+  
+  const items: ParsedItem[] = [];
+  const t = text.toLowerCase();
+  
+  // Find matches in catalog
+  for (const catalogItem of ITEM_CATALOG) {
+    if (catalogItem.category !== serviceType) continue;
+    
+    // Check if item is mentioned
+    let mentioned = false;
+    for (const alias of catalogItem.aliases) {
+      if (t.includes(alias.toLowerCase())) {
+        mentioned = true;
+        break;
+      }
+    }
+    
+    if (mentioned) {
+      // Look for quantity nearby. e.g., "2kg", "2 kg", "half kg", "aadha kg", "1 dozen", "2 litre"
+      const regex = new RegExp(`(?:(\\d+(?:\\.\\d+)?)\\s*(?:kg|kilo|dozen|litre|l|pack|unit)s?|aadha\\s*(?:kg|kilo)|half\\s*(?:kg|kilo))\\s*(?:${catalogItem.aliases.join('|')})`, 'i');
+      const match1 = text.match(regex);
+      
+      const regex2 = new RegExp(`(?:${catalogItem.aliases.join('|')})\\s*(?:(\\d+(?:\\.\\d+)?)\\s*(?:kg|kilo|dozen|litre|l|pack|unit)s?|aadha\\s*(?:kg|kilo)|half\\s*(?:kg|kilo))`, 'i');
+      const match2 = text.match(regex2);
+
+      let quantity = 1; // default
+      let matchStr = match1 ? match1[0] : (match2 ? match2[0] : '');
+      
+      if (matchStr.toLowerCase().includes('aadha') || matchStr.toLowerCase().includes('half')) {
+        quantity = 0.5;
+      } else if (match1 && match1[1]) {
+        quantity = parseFloat(match1[1]);
+      } else if (match2 && match2[1]) {
+        quantity = parseFloat(match2[1]);
+      }
+
+      items.push({
+        name: catalogItem.name,
+        quantity,
+        unit: catalogItem.unit,
+        unitPrice: catalogItem.unitPrice,
+        subtotal: quantity * catalogItem.unitPrice
+      });
+    }
+  }
+  
+  return items;
+}
+
 // ─── Main export ─────────────────────────────────────────────────────────
 export interface IntentAgentOutput {
   intent: ParsedIntent;
@@ -161,6 +215,7 @@ export function runIntentAgent(text: string, userLocation?: string): IntentAgent
   const location = detectLocation(text) ?? userLocation ?? null;
   const { sensitivity: budgetSensitivity, max: maxBudget } = detectBudget(text);
   const complexity = detectComplexity(text, service);
+  const parsedItems = extractItems(text, service);
 
   // Calculate dynamic confidence
   let confidence = baseConfidence;
@@ -219,6 +274,7 @@ export function runIntentAgent(text: string, userLocation?: string): IntentAgent
     jobComplexity: complexity,
     missingFields: missing,
     clarificationQuestion,
+    parsedItems,
   };
 
   const trace: AgentTrace = {
