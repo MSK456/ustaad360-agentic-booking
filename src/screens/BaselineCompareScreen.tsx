@@ -208,12 +208,17 @@ export function BaselineCompareScreen() {
       <View style={styles.colHeaders}>
         <View style={[styles.colHeader, styles.colHeaderLeft]}>
           <Text style={styles.colHeaderTitle}>❌ Simple System</Text>
-          <Text style={styles.colHeaderSub}>Keyword match · No AI</Text>
+          <Text style={styles.colHeaderSub}>Nearest available worker</Text>
         </View>
         <View style={[styles.colHeader, styles.colHeaderRight]}>
           <Text style={[styles.colHeaderTitle, { color: Colors.success }]}>✅ Ustaad360</Text>
-          <Text style={styles.colHeaderSub}>8-agent AI pipeline</Text>
+          <Text style={styles.colHeaderSub}>Best expected outcome</Text>
         </View>
+      </View>
+      <View style={{ paddingHorizontal: Spacing.md, marginBottom: Spacing.md }}>
+        <Text style={{ textAlign: 'center', color: Colors.textSecondary, fontStyle: 'italic', fontSize: 13, lineHeight: 18 }}>
+          "Baseline is fast but blind. Ustaad360 is slower by milliseconds, but safer because it checks trust, price, risk, and service fit."
+        </Text>
       </View>
 
       {/* Score rings summary */}
@@ -256,23 +261,44 @@ export function BaselineCompareScreen() {
         ))}
       </View>
 
-      {/* Winner banner */}
-      <View style={styles.winnerBanner}>
-        <Ionicons name="trophy" size={30} color={Colors.accent} />
-        <View>
-          <Text style={styles.winnerTitle}>Ustaad360 Wins</Text>
-          <Text style={styles.winnerSub}>
-            Composite score {AGENTIC_TOTAL} vs {BASELINE_TOTAL} — {AGENTIC_TOTAL - BASELINE_TOTAL} points ahead
-          </Text>
+      {/* Same provider logic */}
+      {storeCompare && baselineProvider === agenticProvider && (
+        <View style={[styles.winnerBanner, { backgroundColor: Colors.warning + '14', borderColor: Colors.warning + '44' }]}>
+          <Ionicons name="information-circle" size={30} color={Colors.warning} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.winnerTitle, { color: Colors.warning }]}>Same Provider Selected</Text>
+            <Text style={styles.winnerSub}>
+              Both systems selected {baselineProvider}, but Ustaad360 validated trust, price, and risk before confirming.
+            </Text>
+          </View>
         </View>
-        <Badge label={`+${AGENTIC_TOTAL - BASELINE_TOTAL} pts`} variant="success" />
-      </View>
+      )}
+
+      {/* Winner banner */}
+      {(!storeCompare || baselineProvider !== agenticProvider) && (
+        <View style={styles.winnerBanner}>
+          <Ionicons name={AGENTIC_TOTAL >= BASELINE_TOTAL ? "trophy" : "shield-checkmark"} size={30} color={AGENTIC_TOTAL >= BASELINE_TOTAL ? Colors.accent : Colors.success} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.winnerTitle, { color: AGENTIC_TOTAL >= BASELINE_TOTAL ? Colors.accent : Colors.success }]}>
+              {AGENTIC_TOTAL >= BASELINE_TOTAL ? 'Ustaad360 Wins' : 'Baseline is closer, but Ustaad360 is safer'}
+            </Text>
+            <Text style={styles.winnerSub}>
+              {AGENTIC_TOTAL >= BASELINE_TOTAL
+                ? `Composite score ${AGENTIC_TOTAL} vs ${BASELINE_TOTAL}`
+                : `Score ${AGENTIC_TOTAL} vs ${BASELINE_TOTAL}. Agentic system optimized for risk-adjusted success.`}
+            </Text>
+          </View>
+          {AGENTIC_TOTAL >= BASELINE_TOTAL && (
+            <Badge label={`+${AGENTIC_TOTAL - BASELINE_TOTAL} pts`} variant="success" />
+          )}
+        </View>
+      )}
 
       {/* Cost note */}
       <View style={styles.costNote}>
         <Text style={styles.costTitle}>💡 Why the tradeoff is worth it</Text>
         <Text style={styles.costBody}>
-          The agentic pipeline adds ~850ms latency but unlocks multilingual NLU, 9-factor personalized
+          The agentic pipeline adds ~850ms latency but unlocks multilingual NLU, 10-factor personalized
           ranking, transparent AI reasoning, and graceful failure handling — all impossible with simple keyword
           matching.{'\n\n'}
           At 10,000 bookings/day: Gemini Flash cost ~$15–25/day. The simple system costs $0 but

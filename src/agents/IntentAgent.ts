@@ -97,11 +97,29 @@ function detectLocation(text: string): string | null {
   return null;
 }
 
-function detectBudget(text: string): ParsedIntent['budgetSensitivity'] {
+function detectBudget(text: string): { sensitivity: ParsedIntent['budgetSensitivity']; max: number | undefined } {
   const t = text.toLowerCase();
-  if (['zyada nahi', 'sasta', 'kam budget', 'affordable', 'cheap', 'mehnga nahi', 'budget'].some(w => t.includes(w))) return 'high';
-  if (/\d{3,5}\s*(rs|rupay|pkr|₨)/i.test(text)) return 'medium';
-  return 'low';
+  let max: number | undefined;
+
+  // Exact matching for common patterns
+  const p1 = text.match(/(\d{3,5})\s*(rs\.?|rupay|rupees|pkr|₨)/i);
+  const p2 = text.match(/(?:under|below|se\s*kam|kam\s*se|budget|within)\s*(\d{3,5})/i);
+  const p3 = text.match(/(\d{3,5})\s*(?:se\s*kam|mein|mai|me\b|tak|budget\s*hai)/i);
+  
+  if (p1) max = parseInt(p1[1], 10);
+  else if (p2) max = parseInt(p2[1], 10);
+  else if (p3) max = parseInt(p3[1], 10);
+  else {
+    const p4 = text.match(/\b([3-9]\d{2}|[1-4]\d{3}|5000)\b/);
+    if (p4 && (t.includes('budget') || t.includes('rupay') || t.includes('rs') || t.includes('mein') || t.includes('tak'))) {
+      max = parseInt(p4[1], 10);
+    }
+  }
+
+  const budgetWords = ['zyada nahi', 'sasta', 'kam budget', 'affordable', 'cheap', 'mehnga nahi', 'budget', 'se kam', 'under', 'within'];
+  if (budgetWords.some(w => t.includes(w))) return { sensitivity: 'high', max };
+  if (max) return { sensitivity: 'medium', max };
+  return { sensitivity: 'low', max };
 }
 
 function detectComplexity(text: string): ParsedIntent['jobComplexity'] {
@@ -134,7 +152,7 @@ export function runIntentAgent(text: string, userLocation?: string): IntentAgent
   const urgency  = detectUrgency(text);
   const timePref = detectTime(text);
   const location = detectLocation(text) ?? userLocation ?? null;
-  const budget   = detectBudget(text);
+  const { sensitivity: budgetSensitivity, max: maxBudget } = detectBudget(text);
   const complexity = detectComplexity(text);
 
   // Calculate dynamic confidence
@@ -189,7 +207,8 @@ export function runIntentAgent(text: string, userLocation?: string): IntentAgent
     location,
     timePreference: timePref,
     urgency,
-    budgetSensitivity: budget,
+    budgetSensitivity,
+    maxBudget,
     jobComplexity: complexity,
     missingFields: missing,
     clarificationQuestion,

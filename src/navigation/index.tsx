@@ -97,8 +97,18 @@ function MainNavigator() {
 }
 
 export const AppNavigator = () => {
-  const { user, isGuest } = useAuthStore();
+  const { user, isGuest, isHydrated, hydrate } = useAuthStore();
   
+  React.useEffect(() => {
+    if (!isHydrated) hydrate();
+  }, [isHydrated, hydrate]);
+
+  if (!isHydrated) {
+    return (
+      <View style={{ flex: 1, backgroundColor: Colors.background }} />
+    );
+  }
+
   return (
     <NavigationContainer>
       {user || isGuest ? <MainNavigator /> : <AuthNavigator />}

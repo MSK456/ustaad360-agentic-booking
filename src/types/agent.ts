@@ -28,6 +28,7 @@ export interface ParsedIntent {
   timePreference: string;
   urgency: 'low' | 'medium' | 'high' | 'emergency';
   budgetSensitivity: 'low' | 'medium' | 'high';
+  maxBudget?: number;
   jobComplexity: 'basic' | 'intermediate' | 'complex';
   missingFields: string[];
   clarificationQuestion: string | null;
@@ -75,9 +76,13 @@ export interface PricingResult {
   finalEstimate: number;
   fairnessNoteForUser: string;
   fairnessNoteForProvider: string;
-  budgetFit: 'excellent' | 'good' | 'tight' | 'over_budget';
+  budgetFit: 'unknown' | 'within_budget' | 'slightly_over' | 'over_budget';
+  userBudget?: number;
+  gapAmount?: number;
+  gapPercent?: number;
+  isBudgetMismatch: boolean;
   explanation: string;
-  budgetMismatchRecovery?: string[];
+  recoveryOptions?: string[];
 }
 
 export interface BookingResult {
@@ -120,6 +125,7 @@ export interface OrchestratorResult {
   intent: ParsedIntent;
   discoveredProviders: Provider[];
   rankedProviders: RankedProviderResult[];
+  baselineProviders: RankedProviderResult[];
   selectedProvider: RankedProviderResult | null;
   pricing: PricingResult | null;
   booking: BookingResult | null;

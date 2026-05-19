@@ -10,6 +10,7 @@ interface AgentStore {
   run: (query: string, budget?: number, location?: string) => Promise<void>;
   selectProvider: (id: string) => void;
   reset: () => void;
+  addTrace: (trace: any) => void;
 }
 
 export const useAgentStore = create<AgentStore>((set) => ({
@@ -31,4 +32,14 @@ export const useAgentStore = create<AgentStore>((set) => ({
   selectProvider: (id) => set({ selectedProviderId: id }),
 
   reset: () => set({ result: null, isLoading: false, error: null, selectedProviderId: null }),
+
+  addTrace: (trace) => set((state) => {
+    if (!state.result) return state;
+    return {
+      result: {
+        ...state.result,
+        traces: [...state.result.traces, trace],
+      }
+    };
+  }),
 }));

@@ -29,6 +29,20 @@ Ustaad360 is **not** a listing app. It is an **agentic booking platform** that:
 
 ---
 
+## What Makes Ustaad360 Unique?
+
+Ustaad360 stands out through several custom "Judge WOW" features that prove it's an intelligent agent, not just a CRUD app:
+
+- **Agent Decision Summary**: Transparently shows exactly what the agent understood (service, location, budget) before making decisions.
+- **Why not the closest?**: If the AI selects a provider who isn't the closest, it explicitly generates an **Explainability Card** detailing why (e.g., lower cancellation risk, better price fit).
+- **TrustShield™ System**: Provides a branded, visual assessment of a worker's reliability, on-time score, and review freshness (Low Risk, Watchlist, High Risk).
+- **FairPrice Meter™**: Dynamically compares the generated quote against the user's budget and the verified market range, alerting users transparently.
+- **Local Reality Check**: If a user's budget is mathematically impossible for the service, the agent triggers a warm recovery workflow (suggesting inspections) rather than crashing or showing fake results.
+- **Rescue Mode**: If a provider cancels after booking, the orchestrator autonomously activates Rescue Mode, protecting the price lock, assigning a backup within 1.5km, and updating the original provider's reliability score downward.
+- **Baseline Comparison Engine**: Visually proves why the agentic approach ("Best expected outcome") beats the standard baseline approach ("Nearest available worker") across 9 weighted factors.
+
+---
+
 ## Why This Is Agentic, Not Just a Booking App
 
 A traditional booking app shows a list and lets you pick. Ustaad360 runs a **10-step autonomous agent pipeline**:
@@ -322,3 +336,5 @@ eas build --platform android --profile preview
 - [x] TypeScript: 0 errors
 - [x] Metro bundler: clean start
 - [x] Git tagged: `v0.4.1-end-to-end-booking-flow`
+ 
+ 

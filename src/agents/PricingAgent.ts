@@ -49,8 +49,12 @@ export function runPricingAgent(
     agentName: 'PricingAgent',
     action: 'Calculate dynamic price with fairness checks',
     inputSummary: `provider: ${provider.provider.name} | base: ₨${provider.provider.basePricePerHour} | dist: ${provider.distanceKm}km | urgency: ${intent.urgency}`,
-    decision: `₨${pricing.finalEstimate} — budget fit: ${pricing.budgetFit}`,
-    rationale: calc.explanation + (pricing.budgetMismatchRecovery ? ' Recovery options available.' : ''),
+    decision: pricing.budgetFit === 'over_budget' 
+      ? `Budget mismatch detected (Quote: ₨${pricing.finalEstimate})` 
+      : `₨${pricing.finalEstimate} — budget fit: ${pricing.budgetFit}`,
+    rationale: pricing.budgetFit === 'over_budget' 
+      ? `Quote exceeds user's budget (₨${pricing.userBudget}), so recovery options were generated.` 
+      : calc.explanation,
     confidence: pricing.budgetFit !== 'over_budget' ? 0.93 : 0.6,
     dataUsed: ['provider_base_rate', 'distance_matrix', 'urgency_factor', 'demand_data', 'user_loyalty'],
     nextAction: pricing.budgetFit !== 'over_budget' ? 'SchedulingAgent' : 'Budget recovery options',

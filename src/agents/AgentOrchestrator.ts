@@ -14,26 +14,20 @@ function buildBaselineComparison(
   agenticResult: OrchestratorResult,
 ): BaselineComparison {
   const agenticTop  = agenticResult.rankedProviders[0];
-  const baselineTop = agenticResult.rankedProviders.find(r =>
-    // baseline picks by distance first
-    r.distanceKm === Math.min(...agenticResult.rankedProviders.map(x => x.distanceKm))
-  ) ?? agenticResult.rankedProviders[agenticResult.rankedProviders.length - 1];
+  const baselineTop = agenticResult.baselineProviders[0];
 
   const agScore   = agenticTop?.finalScore ?? 0;
-  // Baseline score: only availability + distance (no other factors)
-  const bAvail    = baselineTop?.provider.isAvailable ? 100 : 0;
-  const bDist     = Math.round((1 - Math.min(baselineTop?.distanceKm ?? 10, 20) / 20) * 100);
-  const bScore    = Math.round(bAvail * 0.6 + bDist * 0.4);
+  const bScore    = baselineTop?.finalScore ?? 0;
 
   const factorRows: BaselineFactorRow[] = [
     {
       factor: 'Distance',
-      baseline: { used: true,  value: `${baselineTop?.distanceKm ?? '?'}km (nearest)`, score: bDist, note: 'Primary sort criterion' },
+      baseline: { used: true,  value: `${baselineTop?.distanceKm ?? '?'}km (nearest)`, score: Math.round((baselineTop?.factorScores.distanceScore ?? 0) * 100), note: 'Primary sort criterion' },
       agentic:  { used: true,  value: `${agenticTop?.distanceKm ?? '?'}km (not primary)`, score: Math.round((agenticTop?.factorScores.distanceScore ?? 0) * 100), note: 'Weight: 10%' },
     },
     {
       factor: 'Travel Time',
-      baseline: { used: true,  value: `${baselineTop?.travelTimeMin ?? '?'} min`, score: Math.round((1 - (baselineTop?.travelTimeMin ?? 30) / 60) * 100), note: 'Secondary sort criterion' },
+      baseline: { used: true,  value: `${baselineTop?.travelTimeMin ?? '?'} min`, score: Math.round((baselineTop?.factorScores.travelTimeScore ?? 0) * 100), note: 'Secondary sort criterion' },
       agentic:  { used: true,  value: `${agenticTop?.travelTimeMin ?? '?'} min`, score: Math.round((agenticTop?.factorScores.travelTimeScore ?? 0) * 100), note: 'Weight: 9%' },
     },
     {
@@ -88,7 +82,7 @@ export async function runOrchestrator(
   traces.push(t1);
   if (intent.confidence < 0.7) {
     return {
-      intent, discoveredProviders: [], rankedProviders: [],
+      intent, discoveredProviders: [], rankedProviders: [], baselineProviders: [],
       selectedProvider: null, pricing: null, booking: null,
       followUpTimeline: [], traces,
       baselineComparison: { baselineProvider: null, baselineScore: 0, agenticScore: 0, factorRows: [] },
@@ -99,15 +93,17 @@ export async function runOrchestrator(
   const { providers, trace: t2 } = runDiscoveryAgent(intent);
   traces.push(t2);
 
+  const effectiveBudget = intent.maxBudget ?? userBudget;
+
   // 3. Ranking
-  const { ranked, baseline, trace: t3 } = runRankingAgent(providers, intent, userBudget);
+  const { ranked, baseline, trace: t3 } = runRankingAgent(providers, intent, effectiveBudget);
   traces.push(t3);
 
   const selected = ranked[0] ?? null;
 
   // 4. Pricing
   const { pricing, trace: t4 } = selected
-    ? runPricingAgent(selected, intent, userBudget)
+    ? runPricingAgent(selected, intent, effectiveBudget)
     : { pricing: null, trace: { id: 'skip', timestamp: '', agentName: 'PricingAgent', action: 'Skipped', inputSummary: '', decision: 'No provider', rationale: '', confidence: 0, dataUsed: [], nextAction: '', status: 'failed' as const, durationMs: 0 } };
   traces.push(t4);
 
@@ -145,6 +141,7 @@ export async function runOrchestrator(
     intent,
     discoveredProviders: providers,
     rankedProviders: ranked,
+    baselineProviders: baseline,
     selectedProvider: selected,
     pricing: pricing ?? null,
     booking: booking ?? null,

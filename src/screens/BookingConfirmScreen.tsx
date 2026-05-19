@@ -8,6 +8,7 @@ import { RootStackParamList } from '../navigation/types';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { Button } from '../components/Button';
 import { Badge } from '../components/Badge';
+import { FairPriceMeter } from '../components/FairPriceMeter';
 import { useAgentStore } from '../store/agentStore';
 import { runBookingAgent } from '../agents/BookingAgent';
 import { runFollowUpAgent } from '../agents/FollowUpAgent';
@@ -131,6 +132,16 @@ export const BookingConfirmScreen: React.FC = () => {
         ))}
       </View>
 
+      {/* FairPrice Meter */}
+      {pricing && (
+        <FairPriceMeter 
+          userBudget={pricing.userBudget}
+          finalEstimate={pricing.finalEstimate}
+          budgetFit={pricing.budgetFit}
+          isBudgetMismatch={pricing.isBudgetMismatch}
+        />
+      )}
+
       {/* Price receipt */}
       <View style={styles.card}>
         <Text style={styles.sectionLabel}>PRICE RECEIPT</Text>
@@ -177,10 +188,10 @@ export const BookingConfirmScreen: React.FC = () => {
         {pricing?.fairnessNoteForUser && (
           <Text style={styles.fairnessNote}>{pricing.fairnessNoteForUser}</Text>
         )}
-        {pricing?.budgetMismatchRecovery && (
+        {pricing?.recoveryOptions && (
           <View style={styles.recoveryBox}>
             <Text style={styles.recoveryTitle}>⚠️ Budget Recovery Options</Text>
-            {pricing.budgetMismatchRecovery.map((r, i) => (
+            {pricing.recoveryOptions.map((r: string, i: number) => (
               <Text key={i} style={styles.recoveryItem}>• {r}</Text>
             ))}
           </View>
@@ -227,8 +238,17 @@ export const BookingConfirmScreen: React.FC = () => {
         </Text>
       </View>
 
+      {pricing?.isBudgetMismatch && (
+        <View style={{ backgroundColor: Colors.danger + '11', padding: 12, borderRadius: 8, marginBottom: 12, borderColor: Colors.danger, borderWidth: 1 }}>
+          <Text style={{ color: Colors.danger, fontWeight: 'bold', marginBottom: 4 }}>⚠️ Proceeding Over Budget</Text>
+          <Text style={{ color: Colors.danger, fontSize: 13 }}>
+            This quote (₨{pricing.finalEstimate}) exceeds your target budget (₨{pricing.userBudget}). Pressing confirm means you accept this higher rate.
+          </Text>
+        </View>
+      )}
+
       <Button label={`Confirm Booking — ₨${price.toLocaleString()}`}
-        onPress={handleConfirm} variant="primary" size="lg" fullWidth style={styles.cta} />
+        onPress={handleConfirm} variant={pricing?.isBudgetMismatch ? 'danger' : 'primary'} size="lg" fullWidth style={styles.cta} />
       <Button label="← Change Provider" onPress={() => navigation.goBack()}
         variant="ghost" size="md" fullWidth />
     </ScrollView>

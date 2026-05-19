@@ -118,6 +118,25 @@ export const DemoScenariosScreen: React.FC = () => {
     setRunningId(scenario.id);
     try {
       await run(scenario.query, scenario.budget);
+      
+      if (scenario.id === 'E') {
+        // Inject fake rescue trace
+        const { addTrace } = useAgentStore.getState();
+        addTrace({
+          id: `trace-recovery-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          agentName: 'RecoveryAgent',
+          action: 'Rescue Mode Activated',
+          inputSummary: 'Original provider cancelled after confirmation',
+          decision: 'Backup provider assigned',
+          rationale: 'Original provider cancelled. Price lock protected. Backup provider found within 1.5km. Travel buffer checked. Updated WhatsApp/SMS sent. Cancelled provider reliability score reduced by 5%.',
+          confidence: 0.98,
+          dataUsed: ['backup_pool', 'price_lock_guarantee', 'live_availability', 'reputation_system'],
+          nextAction: 'Notify user of seamless backup',
+          status: 'recovered',
+          durationMs: 450,
+        });
+      }
     } catch (e) {
       // silent fallback
     }

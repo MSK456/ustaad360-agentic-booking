@@ -42,10 +42,10 @@ export const computeTravelTimeScore = (minutes: number): number => {
 export const computePriceFitScore = (price: number, budget: number): number => {
   if (!budget) return 0.75;
   const r = price / budget;
-  if (r <= 0.8) return 1.0;
-  if (r <= 1.0) return 0.9;
-  if (r <= 1.2) return 0.55;
-  if (r <= 1.5) return 0.25;
+  if (r <= 0.9) return 1.0;
+  if (r <= 1.0) return 0.95;
+  if (r <= 1.1) return 0.40;
+  if (r <= 1.25) return 0.15;
   return 0.0;
 };
 
@@ -60,11 +60,11 @@ export const RANKING_WEIGHTS = {
   availability:     0.16,
   skillMatch:       0.14,
   reliability:      0.13,
-  rating:           0.12,
-  reviewRecency:    0.11,
+  rating:           0.09,
+  reviewRecency:    0.09,
   distance:         0.10,
-  travelTime:       0.09,
-  priceFit:         0.08,
+  travelTime:       0.07,
+  priceFit:         0.15,
   lowCancellation:  0.05,
   fairness:         0.02,
 } as const;
@@ -82,8 +82,8 @@ export interface FactorInputs {
   providerFairnessScore: number;
 }
 
-export const computeFinalScore = (f: FactorInputs): number =>
-  Math.round((
+export const computeFinalScore = (f: FactorInputs): number => {
+  let score = (
     RANKING_WEIGHTS.availability    * f.availabilityScore +
     RANKING_WEIGHTS.skillMatch      * f.skillMatchScore +
     RANKING_WEIGHTS.reliability     * f.reliabilityScore +
@@ -94,4 +94,14 @@ export const computeFinalScore = (f: FactorInputs): number =>
     RANKING_WEIGHTS.priceFit        * f.priceFitScore +
     RANKING_WEIGHTS.lowCancellation * f.lowCancellationScore +
     RANKING_WEIGHTS.fairness        * f.providerFairnessScore
-  ) * 100);
+  );
+
+  // Apply massive non-linear penalty for bad price fit to ensure they rank below budget-friendly options
+  if (f.priceFitScore === 0) {
+    score *= 0.1;
+  } else if (f.priceFitScore <= 0.2) {
+    score *= 0.5;
+  }
+
+  return Math.round(score * 100);
+};

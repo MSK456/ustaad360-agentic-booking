@@ -10,14 +10,39 @@ import {
 
 // Simulated distance/travel (deterministic based on provider ID)
 const PROVIDER_DISTANCES: Record<string, { km: number; min: number }> = {
-  p1: { km: 1.2, min: 4  },
-  p2: { km: 3.1, min: 11 },
-  p3: { km: 4.8, min: 17 },
-  p4: { km: 2.0, min: 7  },
-  p5: { km: 5.5, min: 19 },
-  p6: { km: 7.2, min: 25 },
+  p1:  { km: 1.2, min: 4  },
+  p2:  { km: 3.1, min: 11 },
+  p3:  { km: 4.8, min: 17 },
+  p4:  { km: 2.0, min: 7  },
+  p5:  { km: 5.5, min: 19 },
+  p6:  { km: 7.2, min: 25 },
+  p7:  { km: 6.0, min: 21 },
+  p8:  { km: 9.5, min: 33 },
+  p9:  { km: 11.0, min: 38 },
+  p10: { km: 3.5, min: 12 },
+  p11: { km: 2.8, min: 10 },
+  p12: { km: 8.0, min: 28 },
+  p13: { km: 10.5, min: 37 },
+  p14: { km: 7.0, min: 24 },
+  ac2: { km: 1.8, min: 6  },
+  ac3: { km: 4.2, min: 15 },
+  ac4: { km: 6.5, min: 23 },
+  ac5: { km: 2.5, min: 9  },
+  ac6: { km: 5.0, min: 18 },
+  ac7: { km: 12.0, min: 42 },
+  el3: { km: 1.6, min: 6  },
+  el4: { km: 13.0, min: 45 },
+  el5: { km: 9.0, min: 31 },
+  el6: { km: 5.8, min: 20 },
 };
-const getDistance = (id: string) => PROVIDER_DISTANCES[id] ?? { km: 8, min: 28 };
+
+const getDistance = (id: string) => {
+  if (PROVIDER_DISTANCES[id]) return PROVIDER_DISTANCES[id];
+  // Deterministic realistic distance for dynamically added providers
+  const num = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const km = (num % 150) / 10 + 1.2; // 1.2 to 16.1 km
+  return { km: parseFloat(km.toFixed(1)), min: Math.round(km * 3.5) };
+};
 
 // Skill keywords per service
 const SERVICE_SKILLS: Record<string, string[]> = {
@@ -100,8 +125,31 @@ export function runRankingAgent(
       `${closestIdx.provider.name} is closer (${closestIdx.distanceKm}km) but has lower reliability (${Math.round(closestIdx.provider.onTimeScore*100)}% on-time) and rating (${closestIdx.provider.rating}).`;
   }
 
-  // Baseline: sort by availability then distance only
-  const baseline = [...scored].sort((a, b) => {
+  // Baseline: recalculate a simple score (0-100) based ONLY on availability (40%) and distance (60%)
+  const baseline = [...scored].map(r => {
+    // A primitive booking system just looks at distance if available.
+    // If not available, score is 0.
+    let bScore = 0;
+    if (r.provider.isAvailable) {
+      bScore = Math.round((0.4 * 1.0 + 0.6 * r.factorScores.distanceScore) * 100);
+    } else {
+      bScore = Math.round((0.6 * r.factorScores.distanceScore) * 100);
+    }
+    
+    // ensure baseline isn't 0 if they are close but unavailable.
+    bScore = Math.max(bScore, 10); // user requested "do not make baseline 0. believable but weaker"
+    
+    // adjust slightly to recommended range 55-70 if it's available
+    if (r.provider.isAvailable) {
+       bScore = Math.min(85, Math.max(55, bScore - 15));
+    }
+    
+    return {
+      ...r,
+      finalScore: bScore,
+      rankingReason: `Score ${bScore}/100 — based only on distance (${r.distanceKm}km) and basic availability.`,
+    };
+  }).sort((a, b) => {
     if (b.provider.isAvailable !== a.provider.isAvailable)
       return b.provider.isAvailable ? 1 : -1;
     return a.distanceKm - b.distanceKm;

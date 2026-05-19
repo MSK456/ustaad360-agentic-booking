@@ -125,6 +125,18 @@ Same query on both sides:
 
 ---
 
+## Scene 10: The "WOW" Features (4:05–4:35)
+**Show:** Quick montage of the unique features  
+- **TrustShield™** showing Low Risk vs High Risk providers
+- **FairPrice Meter™** checking budget fit
+- **Explainability Card** ("Why not the closest?")
+- **Local Reality Check** for impossible budgets
+- **Rescue Mode** automatically finding a backup provider when the first cancels
+
+**Narration:** "Ustaad360 is not just a booking app. It has TrustShield, FairPrice Meter, Explainability Cards, Local Reality Checks, and Rescue Mode. It's a true orchestration pipeline."
+
+---
+
 ## Scene 10: Closing (4:05–4:30)
 **Show:** App icon, tagline, GitHub QR code, APK QR code  
 **Narration:** "Ustaad360 — Agentic. Multilingual. Transparent. Pakistan ke liye banaya gaya."

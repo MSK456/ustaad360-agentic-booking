@@ -20,9 +20,13 @@ export interface PricingOutput {
   finalEstimate: number;
   fairnessNoteForUser: string;
   fairnessNoteForProvider: string;
-  budgetFit: 'excellent' | 'good' | 'tight' | 'over_budget';
+  budgetFit: 'unknown' | 'within_budget' | 'slightly_over' | 'over_budget';
+  userBudget?: number;
+  gapAmount?: number;
+  gapPercent?: number;
+  isBudgetMismatch: boolean;
   explanation: string;
-  budgetMismatchRecovery?: string[];
+  recoveryOptions?: string[];
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────
@@ -49,13 +53,23 @@ export function calculatePrice(input: PricingInput): PricingOutput {
   const finalEstimate = Math.round(subtotal - loyaltyDiscount);
 
   // Budget fit
-  let budgetFit: PricingOutput['budgetFit'] = 'good';
+  let budgetFit: PricingOutput['budgetFit'] = 'unknown';
+  let gapAmount = 0;
+  let gapPercent = 0;
+
   if (input.userBudget) {
-    const r = finalEstimate / input.userBudget;
-    if (r <= 0.8) budgetFit = 'excellent';
-    else if (r <= 1.0) budgetFit = 'good';
-    else if (r <= 1.25) budgetFit = 'tight';
-    else budgetFit = 'over_budget';
+    if (finalEstimate <= input.userBudget) {
+      budgetFit = 'within_budget';
+    } else if (finalEstimate <= input.userBudget * 1.15) {
+      budgetFit = 'slightly_over';
+    } else {
+      budgetFit = 'over_budget';
+    }
+
+    if (finalEstimate > input.userBudget) {
+      gapAmount = finalEstimate - input.userBudget;
+      gapPercent = Math.round((gapAmount / input.userBudget) * 100);
+    }
   }
 
   const explanation =
@@ -69,7 +83,7 @@ export function calculatePrice(input: PricingInput): PricingOutput {
     ` = ₨${finalEstimate}`;
 
   // Recovery suggestions when over budget
-  const budgetMismatchRecovery: string[] | undefined = budgetFit === 'over_budget' ? [
+  const recoveryOptions: string[] | undefined = budgetFit === 'over_budget' ? [
     'Choose a lower-cost provider from the ranked list',
     'Book an off-peak morning slot to avoid demand surcharge',
     'Reduce scope to basic inspection first',
@@ -91,7 +105,11 @@ export function calculatePrice(input: PricingInput): PricingOutput {
     fairnessNoteForProvider:
       `Provider receives ₨${Math.round(finalEstimate * 0.85)} after platform fee. Premium is added for providers with rating ≥ 4.5.`,
     budgetFit,
+    userBudget: input.userBudget,
+    gapAmount,
+    gapPercent,
+    isBudgetMismatch: budgetFit === 'over_budget',
     explanation,
-    budgetMismatchRecovery,
+    recoveryOptions,
   };
 }

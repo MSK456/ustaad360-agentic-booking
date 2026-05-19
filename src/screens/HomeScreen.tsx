@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   StyleSheet, StatusBar, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -45,8 +46,10 @@ export const HomeScreen: React.FC = () => {
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'G';
   const firstName = user?.name ? user.name.split(' ')[0] : 'Guest';
 
+  const handleLogout = () => { logout(); };
+
   return (
-    <View style={styles.root}>
+    <SafeAreaView style={styles.root} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
       <ScrollView
         contentContainerStyle={styles.scroll}
@@ -59,7 +62,7 @@ export const HomeScreen: React.FC = () => {
             <Ionicons name="construct" size={24} color={Colors.primary} />
             <Text style={styles.appName}>Ustaad<Text style={styles.appVersion}>360</Text></Text>
           </View>
-          <TouchableOpacity onPress={logout} style={styles.avatarCircle}>
+          <TouchableOpacity onPress={handleLogout} style={styles.avatarCircle}>
             <Text style={styles.avatarText}>{initial}</Text>
           </TouchableOpacity>
         </View>
@@ -135,19 +138,27 @@ export const HomeScreen: React.FC = () => {
         <View style={styles.whyCard}>
           <View style={styles.whyRow}>
             <Ionicons name="language" size={20} color={Colors.primary} />
-            <Text style={styles.whyText}>Understands Urdu & Roman Urdu with typos</Text>
+            <Text style={styles.whyText}>Understands Urdu, Roman Urdu, English & typos</Text>
           </View>
           <View style={styles.whyRow}>
-            <Ionicons name="bar-chart" size={20} color={Colors.primary} />
-            <Text style={styles.whyText}>10-factor smart provider ranking</Text>
+            <Ionicons name="location" size={20} color={Colors.primary} />
+            <Text style={styles.whyText}>Filters by city before checking distance</Text>
+          </View>
+          <View style={styles.whyRow}>
+            <Ionicons name="podium" size={20} color={Colors.primary} />
+            <Text style={styles.whyText}>Ranks by trust, not just nearest worker</Text>
           </View>
           <View style={styles.whyRow}>
             <Ionicons name="cash" size={20} color={Colors.primary} />
-            <Text style={styles.whyText}>Transparent dynamic pricing (no hidden fees)</Text>
+            <Text style={styles.whyText}>Shows transparent fair price breakdown</Text>
           </View>
           <View style={styles.whyRow}>
-            <Ionicons name="shield-checkmark" size={20} color={Colors.primary} />
-            <Text style={styles.whyText}>AI-powered dispute resolution & fairness</Text>
+            <Ionicons name="refresh-circle" size={20} color={Colors.primary} />
+            <Text style={styles.whyText}>Recovers automatically from cancellations</Text>
+          </View>
+          <View style={styles.whyRow}>
+            <Ionicons name="hardware-chip" size={20} color={Colors.primary} />
+            <Text style={styles.whyText}>Logs every agent decision transparently</Text>
           </View>
         </View>
 
@@ -157,14 +168,14 @@ export const HomeScreen: React.FC = () => {
           <Text style={styles.poweredText}>Fully offline · 10-agent AI pipeline</Text>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   scroll: { padding: Spacing.base, paddingBottom: Spacing.xxxl },
-  appHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.lg },
+  appHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.lg, paddingTop: 4 },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   appName: { ...Typography.h3, color: '#FFFFFF', letterSpacing: 0.5 },
   appVersion: { color: Colors.primary },

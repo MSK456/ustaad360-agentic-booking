@@ -9,6 +9,10 @@ import { Colors, Spacing, Radius, Typography } from '../theme';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { ScoreRing } from '../components/ScoreRing';
+import { MapPreviewCard } from '../components/MapPreviewCard';
+import { FairPriceMeter } from '../components/FairPriceMeter';
+import { TrustShieldCard } from '../components/TrustShieldCard';
+import { AgentDecisionSummaryCard } from '../components/AgentDecisionSummaryCard';
 import { useAgentStore } from '../store/agentStore';
 import { MOCK_PROVIDERS } from '../data/providers';
 
@@ -68,8 +72,10 @@ export const ProviderDetailScreen: React.FC = () => {
     finalEstimate: estimatedPrice,
     fairnessNoteForUser: 'Price calculated transparently using distance, urgency, and job complexity.',
     fairnessNoteForProvider: `Provider receives ₨${Math.round(estimatedPrice * 0.85)} after platform fee.`,
-    budgetFit: 'good' as const,
+    budgetFit: 'unknown' as const,
+    isBudgetMismatch: false,
     explanation: `Base ₨${provider.basePricePerHour} + distance + complexity × urgency - loyalty`,
+    recoveryOptions: [],
   };
 
   return (
@@ -99,6 +105,23 @@ export const ProviderDetailScreen: React.FC = () => {
         </View>
         <ScoreRing score={finalScore} size={72} label="score" />
       </View>
+
+      <AgentDecisionSummaryCard intent={result?.intent} rankedProvidersCount={result?.rankedProviders.length ?? 0} />
+
+      <TrustShieldCard 
+        reliabilityScore={provider.onTimeScore}
+        cancellationRate={provider.cancellationRate}
+        rating={provider.rating}
+        verifiedBadge={provider.verifiedBadge}
+        skillMatchScore={factorScores.skillMatchScore}
+      />
+
+      <FairPriceMeter 
+        userBudget={pricingDisplay.userBudget}
+        finalEstimate={pricingDisplay.finalEstimate}
+        budgetFit={pricingDisplay.budgetFit}
+        isBudgetMismatch={pricingDisplay.isBudgetMismatch}
+      />
 
       {/* Quick stats */}
       <View style={styles.quickStats}>
@@ -130,9 +153,15 @@ export const ProviderDetailScreen: React.FC = () => {
         </View>
         <Text style={styles.reasonText}>{whyRecommended}</Text>
         {whyNotClosestProvider && (
-          <View style={styles.notClosestBox}>
-            <Ionicons name="information-circle-outline" size={14} color={Colors.warning} />
-            <Text style={styles.notClosestText}>{whyNotClosestProvider}</Text>
+          <View style={[styles.reasonCard, { borderColor: Colors.warning, backgroundColor: Colors.warning + '11', marginTop: Spacing.sm }]}>
+            <View style={styles.reasonHeader}>
+              <Ionicons name="git-branch-outline" size={16} color={Colors.warning} />
+              <Text style={[styles.reasonTitle, { color: Colors.warning }]}>Why not the closest?</Text>
+            </View>
+            <Text style={[styles.reasonText, { color: Colors.textSecondary }]}>
+              {whyNotClosestProvider}
+              {'\n\n'}Ustaad360 selected a slightly farther provider with better expected success.
+            </Text>
           </View>
         )}
       </View>
@@ -186,6 +215,17 @@ export const ProviderDetailScreen: React.FC = () => {
         }
       </View>
 
+      {/* Map & ETA */}
+      <Text style={styles.sectionLabel}>Route & Location</Text>
+      <MapPreviewCard
+        userArea={result?.intent?.location || 'Your Location'}
+        providerArea={provider.city || 'Model Town'}
+        city={provider.city || 'Lahore'}
+        distanceKm={distanceKm}
+        travelTimeMin={travelTimeMin}
+        providerName={provider.name}
+      />
+
       {/* 10-Factor Score Breakdown */}
       <Text style={styles.sectionLabel}>10-Factor Score Breakdown</Text>
       <View style={styles.scoreCard}>
@@ -237,18 +277,32 @@ export const ProviderDetailScreen: React.FC = () => {
           <Text style={styles.priceTotalLabel}>Final Estimate</Text>
           <Text style={styles.priceTotalVal}>₨{pricingDisplay.finalEstimate.toLocaleString()}</Text>
         </View>
+        {pricingDisplay.isBudgetMismatch && pricingDisplay.userBudget && pricingDisplay.gapAmount && (
+          <View style={[styles.budgetFitBox, { backgroundColor: Colors.warning + '15', marginTop: 16, borderColor: Colors.warning, borderWidth: 1 }]}>
+            <View style={{flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8}}>
+              <Ionicons name="compass-outline" size={18} color={Colors.warning} />
+              <Text style={[styles.budgetFitText, { color: Colors.warning, fontWeight: 'bold' }]}>LOCAL REALITY CHECK</Text>
+            </View>
+            <Text style={{color: Colors.textSecondary, fontSize: 13, lineHeight: 18}}>
+              ₨{pricingDisplay.userBudget.toLocaleString()} is below the verified market range for this service. 
+              Ustaad360 can offer a basic inspection option, later slot, or waitlist instead of showing fake cheap results.
+            </Text>
+          </View>
+        )}
+
         <View style={[styles.budgetFitBox, { backgroundColor:
-          pricingDisplay.budgetFit === 'excellent' ? Colors.success + '15' :
-          pricingDisplay.budgetFit === 'good' ? Colors.primary + '15' :
-          pricingDisplay.budgetFit === 'tight' ? Colors.warning + '15' : Colors.danger + '15'
+          pricingDisplay.budgetFit === 'within_budget' ? Colors.success + '15' :
+          pricingDisplay.budgetFit === 'slightly_over' ? Colors.warning + '15' :
+          pricingDisplay.budgetFit === 'over_budget' ? Colors.danger + '15' : Colors.primary + '15'
         }]}>
           <Text style={styles.budgetFitText}>{pricingDisplay.budgetFit.replace('_', ' ').toUpperCase()} — {pricingDisplay.explanation}</Text>
         </View>
         <Text style={styles.fairnessNote}>{pricingDisplay.fairnessNoteForUser}</Text>
-        {pricingDisplay.budgetMismatchRecovery && (
+        
+        {pricingDisplay.recoveryOptions && (
           <View style={styles.recoveryBox}>
             <Text style={styles.recoveryTitle}>💡 Budget Recovery Options</Text>
-            {pricingDisplay.budgetMismatchRecovery.map((r, i) => (
+            {pricingDisplay.recoveryOptions.map((r: string, i: number) => (
               <Text key={i} style={styles.recoveryItem}>• {r}</Text>
             ))}
           </View>
@@ -257,9 +311,9 @@ export const ProviderDetailScreen: React.FC = () => {
 
       {/* CTA */}
       <Button
-        label={`Book ${provider.name.split(' ')[0]} — ₨${pricingDisplay.finalEstimate.toLocaleString()}`}
+        label={pricingDisplay.isBudgetMismatch ? `Review budget options (Quote: ₨${pricingDisplay.finalEstimate.toLocaleString()})` : `Book this Ustaad — ₨${pricingDisplay.finalEstimate.toLocaleString()}`}
         onPress={() => navigation.navigate('BookingConfirm', { providerId: provider.id })}
-        variant="primary" size="lg" fullWidth style={styles.cta}
+        variant={pricingDisplay.isBudgetMismatch ? "danger" : "primary"} size="lg" fullWidth style={styles.cta}
       />
       <Button label="← Back to Providers" onPress={() => navigation.goBack()}
         variant="ghost" size="md" fullWidth />

@@ -25,6 +25,7 @@ export interface Provider {
   name: string;
   phone: string;
   city: string;
+  area?: string;
   location: { lat: number; lng: number };
   serviceCategories: ServiceCategory[];
   skills: string[];

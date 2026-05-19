@@ -16,21 +16,35 @@ export function runDiscoveryAgent(intent: ParsedIntent): DiscoveryAgentOutput {
     p.serviceCategories.includes(intent.serviceType as any)
   );
 
-  // Step 2: if location known, prefer area match; else fall through to city
-  const loc = intent.location?.toLowerCase() ?? '';
-  const areaMatched = matched.filter(p =>
-    loc && p.city.toLowerCase().includes(loc.split(' ')[0])
-  );
-  const results = areaMatched.length > 0 ? areaMatched : matched;
+  // Determine city context from location string
+  const loc = (intent.location || '').toLowerCase();
+  let queryCity = '';
+  if (loc.includes('islamabad') || loc.includes('isb') || loc.match(/\b([fghi]-\d+)\b/i) || loc.includes('blue area')) {
+    queryCity = 'Islamabad';
+  } else if (loc.includes('lahore') || loc.includes('lhr') || loc.includes('johar') || loc.includes('gulberg')) {
+    queryCity = 'Lahore';
+  } else if (loc.includes('karachi') || loc.includes('khi') || loc.includes('clifton')) {
+    queryCity = 'Karachi';
+  }
 
-  // Step 3: fallback — if still empty, return any available provider
-  const candidates = results.length > 0 ? results : MOCK_PROVIDERS.filter(p => p.isAvailable);
+  // Step 2: Filter strictly by city if known
+  let results = matched;
+  let cityFiltered = false;
+  if (queryCity) {
+    const cityMatches = matched.filter(p => p.city.toLowerCase() === queryCity.toLowerCase());
+    if (cityMatches.length > 0) {
+      results = cityMatches;
+      cityFiltered = true;
+    } else {
+      // Return empty if no provider in city, as per user requirement (or remote fallback)
+      results = [];
+    }
+  }
 
-  // Step 4: Apply pseudo-random dynamic provider rotation (Simulating live current load / fair dispatch)
-  // We hash the query text so the demo remains deterministic for a specific query, but varies across queries.
+  // Step 3: Apply pseudo-random dynamic provider rotation (Simulating live current load / fair dispatch)
   const hash = intent.originalText.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   
-  const final = candidates.map(p => {
+  const final = results.map(p => {
     // Determine if this provider is "temporarily busy" based on query hash and provider id
     const pHash = p.id.charCodeAt(p.id.length - 1);
     const isBusyNow = (hash + pHash) % 5 === 0; // ~20% chance to be busy right now
@@ -50,7 +64,7 @@ export function runDiscoveryAgent(intent: ParsedIntent): DiscoveryAgentOutput {
     action: 'Query provider pool by service type and location',
     inputSummary: `service: ${intent.serviceType} | location: ${intent.location ?? 'any'} | urgency: ${intent.urgency}`,
     decision: `${final.length} provider(s) found, ${availableCount} available`,
-    rationale: `Filtered ${MOCK_PROVIDERS.length} providers by category "${intent.serviceType}". ${areaMatched.length > 0 ? `Area match on "${intent.location}".` : 'No exact area match — returning city-level results.'} Applied dynamic load balancing rotation. Available: ${availableCount}/${final.length}.`,
+    rationale: `Filtered ${MOCK_PROVIDERS.length} providers by category "${intent.serviceType}". ${cityFiltered ? `City match on "${queryCity}".` : 'No exact city match — returning general results.'} Applied dynamic load balancing rotation. Available: ${availableCount}/${final.length}.`,
     confidence: final.length > 0 ? 0.92 : 0.4,
     dataUsed: ['provider_pool', 'service_category_filter', 'location_filter', 'live_load_balancer'],
     nextAction: final.length > 0 ? 'RankingAgent' : 'Clarification or fallback',
