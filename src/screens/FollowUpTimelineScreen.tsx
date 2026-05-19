@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -9,33 +9,52 @@ import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { RootStackParamList } from '../navigation/types';
 import { useAgentStore } from '../store/agentStore';
+import { useBookingStore } from '../store/bookingStore';
 import { FollowUpEvent } from '../types/agent';
+import { BookingStatus } from '../types/index';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-
-// Static fallback timeline
-const FALLBACK: FollowUpEvent[] = [
-  { step:1, label:'Booking Confirmed',    time:'10:30 PM', date:'Today',    status:'done',   icon:'checkmark-circle', color:Colors.success, note:'ID: B-U360-DEMO' },
-  { step:2, label:'Reminder Scheduled',   time:'9:00 AM',  date:'Tomorrow', status:'done',   icon:'notifications',    color:Colors.primary },
-  { step:3, label:'Provider Assigned',    time:'8:50 AM',  date:'Tomorrow', status:'active', icon:'navigate',         color:Colors.primary, note:'Arriving in ~10 min' },
-  { step:4, label:'Service In Progress',  time:'9:10 AM',  date:'Tomorrow', status:'pending',icon:'construct',        color:Colors.warning },
-  { step:5, label:'Work Completed',       time:'—',        date:'—',        status:'pending',icon:'flag',             color:Colors.textDisabled },
-  { step:6, label:'Completion Checklist', time:'—',        date:'—',        status:'pending',icon:'clipboard',        color:Colors.textDisabled },
-  { step:7, label:'Feedback Collected',   time:'—',        date:'—',        status:'pending',icon:'star',             color:Colors.textDisabled },
-  { step:8, label:'Reputation Updated',   time:'—',        date:'—',        status:'pending',icon:'trending-up',      color:Colors.textDisabled },
-];
+type Route = RouteProp<RootStackParamList, 'FollowUpTimeline'>;
 
 export const FollowUpTimelineScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<Route>();
+  const { bookingId } = route.params;
+
   const { result } = useAgentStore();
+  const { getBookingById, updateBookingStatus } = useBookingStore();
 
-  const timeline = (result?.followUpTimeline?.length ?? 0) > 0
-    ? result!.followUpTimeline
-    : FALLBACK;
+  const storeBooking = getBookingById(bookingId);
+  const provider = result?.rankedProviders?.find(r => r.provider.id === storeBooking?.providerId)?.provider ?? result?.selectedProvider?.provider;
+  const price = storeBooking?.quotedPrice ?? result?.pricing?.finalEstimate ?? 1354;
 
-  const booking = result?.booking;
-  const provider = result?.selectedProvider?.provider;
-  const price    = result?.pricing?.finalEstimate ?? 1354;
+  const currentStatus = storeBooking?.status ?? 'pending';
+
+  const statuses: BookingStatus[] = [
+    'pending', 'confirmed', 'provider_assigned', 'en_route', 'in_progress', 'completed', 'feedback_pending', 'feedback_collected'
+  ];
+
+  const currentIndex = statuses.indexOf(currentStatus as any) >= 0 ? statuses.indexOf(currentStatus as any) : 0;
+
+  const generateTimeline = (): FollowUpEvent[] => {
+    return [
+      { step:1, label:'Booking Confirmed', time:'10:30 PM', date:'Today', status: currentIndex >= 1 ? 'done' : currentIndex === 0 ? 'active' : 'pending', icon:'checkmark-circle', color:Colors.success, note:`ID: ${bookingId}` },
+      { step:2, label:'Provider Assigned', time:'8:50 AM', date:'Tomorrow', status: currentIndex >= 2 ? 'done' : currentIndex === 1 ? 'active' : 'pending', icon:'person', color:Colors.primary, note: currentIndex === 1 ? 'Assigning provider...' : undefined },
+      { step:3, label:'En Route', time:'9:00 AM', date:'Tomorrow', status: currentIndex >= 3 ? 'done' : currentIndex === 2 ? 'active' : 'pending', icon:'navigate', color:Colors.primary, note: currentIndex === 2 ? 'Arriving in ~10 min' : undefined },
+      { step:4, label:'Service In Progress', time:'9:10 AM', date:'Tomorrow', status: currentIndex >= 4 ? 'done' : currentIndex === 3 ? 'active' : 'pending', icon:'construct', color:Colors.warning },
+      { step:5, label:'Work Completed', time: currentIndex >= 5 ? '10:00 AM' : '—', date: currentIndex >= 5 ? 'Tomorrow' : '—', status: currentIndex >= 5 ? 'done' : currentIndex === 4 ? 'active' : 'pending', icon:'flag', color:Colors.success },
+      { step:6, label:'Feedback Collected', time: currentIndex >= 7 ? '10:05 AM' : '—', date: currentIndex >= 7 ? 'Tomorrow' : '—', status: currentIndex >= 7 ? 'done' : currentIndex >= 5 ? 'active' : 'pending', icon:'star', color:Colors.warning },
+      { step:7, label:'Reputation Updated', time: currentIndex >= 7 ? '10:05 AM' : '—', date: currentIndex >= 7 ? 'Tomorrow' : '—', status: currentIndex >= 7 ? 'done' : currentIndex >= 7 ? 'active' : 'pending', icon:'trending-up', color:Colors.primary },
+    ];
+  };
+
+  const timeline = generateTimeline();
+
+  const handleNextStep = () => {
+    if (currentIndex < statuses.length - 1) {
+      updateBookingStatus(bookingId, statuses[currentIndex + 1]);
+    }
+  };
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -44,16 +63,16 @@ export const FollowUpTimelineScreen: React.FC = () => {
       <View style={styles.bookingCard}>
         <View style={styles.bookingRow}>
           <View>
-            <Text style={styles.bookingId}>#{booking?.bookingId ?? 'B-U360-DEMO'}</Text>
+            <Text style={styles.bookingId}>#{bookingId}</Text>
             <Text style={styles.bookingService}>
-              {provider?.serviceCategories[0]?.replace('_', ' ') ?? 'Plumber'} — Repair Service
+              {storeBooking?.serviceCategory.replace('_', ' ') ?? 'Service'}
             </Text>
           </View>
-          <Badge label="In Progress" variant="warning" dot />
+          <Badge label={currentStatus.replace('_', ' ').toUpperCase()} variant={currentStatus === 'completed' ? 'success' : 'warning'} dot />
         </View>
         <View style={styles.providerRow}>
           <Ionicons name="person-circle-outline" size={20} color={Colors.primary} />
-          <Text style={styles.providerName}>{provider?.name ?? 'Ahmed Khan'}</Text>
+          <Text style={styles.providerName}>{provider?.name ?? 'Ustaad360 Provider'}</Text>
           <Text style={styles.rating}>⭐ {provider?.rating.toFixed(1) ?? '4.8'}</Text>
           <Text style={styles.price}>₨{price.toLocaleString()}</Text>
         </View>
@@ -102,6 +121,10 @@ export const FollowUpTimelineScreen: React.FC = () => {
 
       {/* Actions */}
       <View style={styles.actions}>
+        {currentIndex < statuses.length - 1 && (
+          <Button label="Progress Status (Demo)" variant="primary" size="md" fullWidth
+            onPress={handleNextStep} style={{ marginBottom: Spacing.sm }} />
+        )}
         <Button label="View Agent Trace" variant="outline" size="md" fullWidth
           onPress={() => (navigation as any).navigate('MainTabs', { screen: 'AgentTrace' })} />
         <Button label="File a Dispute" variant="ghost" size="md" fullWidth

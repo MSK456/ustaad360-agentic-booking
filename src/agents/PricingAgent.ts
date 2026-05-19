@@ -19,6 +19,7 @@ export function runPricingAgent(
   provider: RankedProviderResult,
   intent: ParsedIntent,
   userBudget?: number,
+  afterHoursFee: number = 0,
   isReturningUser = true,
 ): PricingAgentOutput {
   const t0 = Date.now();
@@ -37,6 +38,7 @@ export function runPricingAgent(
     isReturningUser,
     userBudget,
     items:           intent.parsedItems,
+    afterHoursFee,
   });
 
   const pricing: PricingResult = {

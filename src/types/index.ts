@@ -8,8 +8,8 @@ export type ServiceCategory =
 
 export type Urgency = 'low' | 'medium' | 'high' | 'emergency';
 export type BookingStatus =
-  | 'pending' | 'confirmed' | 'en_route'
-  | 'in_progress' | 'completed' | 'cancelled' | 'disputed';
+  | 'pending' | 'confirmed' | 'provider_assigned' | 'en_route'
+  | 'in_progress' | 'completed' | 'feedback_pending' | 'feedback_collected' | 'cancelled' | 'disputed';
 export type AgentName =
   | 'NLUAgent' | 'DiscoveryAgent' | 'RankingAgent' | 'PricingAgent'
   | 'BookingAgent' | 'ReminderAgent' | 'ReputationAgent' | 'DisputeAgent';
@@ -46,6 +46,11 @@ export interface Provider {
   verifiedBadge: boolean;
   profilePhotoUrl: string;
   joinedAt: string;
+  workingHours?: { start: string; end: string };
+  isEmergencyAvailable?: boolean;
+  emergencyResponseMinutes?: number;
+  currentLoad?: number;
+  capacityPerDay?: number;
 }
 
 export interface User {
@@ -71,6 +76,7 @@ export interface Booking {
   finalPrice: number;
   paymentMethod: 'cash' | 'easypaisa' | 'jazzcash';
   createdAt: string;
+  updatedAt?: string;
   completedAt?: string;
 }
 

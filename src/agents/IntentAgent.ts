@@ -73,22 +73,83 @@ function detectService(raw: string): { service: string; baseConfidence: number; 
   return best;
 }
 
-function detectUrgency(text: string): ParsedIntent['urgency'] {
-  const t = text.toLowerCase();
-  if (['emergency', 'fire', 'flood', 'burst'].some(w => t.includes(w))) return 'emergency';
-  if (['urgent', 'abhi', 'now', 'asap', 'jaldi', 'aaj'].some(w => t.includes(w))) return 'high';
-  if (['tomorrow', 'kal', 'tmrw'].some(w => t.includes(w))) return 'medium';
-  return 'low';
-}
-
-function detectTime(raw: string): string {
+function detectTimeIntelligence(raw: string): {
+  urgency: ParsedIntent['urgency'];
+  timePreference: string;
+  dateLabel: 'today' | 'tomorrow' | 'unknown';
+  timeWindow: 'now' | 'morning' | 'afternoon' | 'evening' | 'night' | 'exact' | 'unknown';
+  requestedDateTime?: string;
+  isAfterHours: boolean;
+} {
   const t = fixTypos(raw).toLowerCase();
-  const isToday    = ['today', 'aaj', 'abhi'].some(w => t.includes(w));
-  const isTomorrow = ['tomorrow', 'kal', 'tmrw'].some(w => t.includes(w));
-  const isMorning  = ['morning', 'subah', 'subh'].some(w => t.includes(w));
-  if (isToday)    return isMorning ? 'today morning' : 'today';
-  if (isTomorrow) return isMorning ? 'tomorrow morning' : 'tomorrow';
-  return 'flexible';
+  
+  let dateLabel: 'today' | 'tomorrow' | 'unknown' = 'unknown';
+  if (['today', 'aaj', 'abhi', 'now', 'tonight', 'raat ko'].some(w => t.includes(w))) dateLabel = 'today';
+  else if (['tomorrow', 'kal', 'tmrw'].some(w => t.includes(w))) dateLabel = 'tomorrow';
+
+  let timeWindow: 'now' | 'morning' | 'afternoon' | 'evening' | 'night' | 'exact' | 'unknown' = 'unknown';
+  if (['abhi', 'now', 'foran', 'forn', 'asap', 'jaldi'].some(w => t.includes(w))) timeWindow = 'now';
+  else if (['morning', 'subah', 'subh'].some(w => t.includes(w))) timeWindow = 'morning';
+  else if (['afternoon', 'dopehar'].some(w => t.includes(w))) timeWindow = 'afternoon';
+  else if (['evening', 'shaam'].some(w => t.includes(w))) timeWindow = 'evening';
+  else if (['night', 'raat', 'tonight'].some(w => t.includes(w))) timeWindow = 'night';
+
+  let requestedDateTime: string | undefined = undefined;
+  let isAfterHours = false;
+
+  // Exact time regex: e.g., "2am", "2 am", "2 baje", "14:00"
+  const timeMatch = t.match(/(\d{1,2})(?::\d{2})?\s*(am|pm|baje)/i);
+  if (timeMatch) {
+    timeWindow = 'exact';
+    let hour = parseInt(timeMatch[1], 10);
+    const ampm = timeMatch[2].toLowerCase();
+    
+    if (ampm === 'pm' && hour < 12) hour += 12;
+    if (ampm === 'am' && hour === 12) hour = 0;
+    
+    // Check if baje implies AM/PM based on context
+    if (ampm === 'baje') {
+      if (t.includes('raat') && hour < 12) {
+        if (hour >= 8) hour += 12; // 8 baje raat = 20:00
+        else hour += 0; // 2 baje raat = 02:00
+      } else if (t.includes('shaam') && hour < 12) hour += 12;
+      else if (t.includes('dopehar') && hour < 12) hour += 12;
+    }
+
+    if (hour < 8 || hour >= 22) isAfterHours = true;
+
+    // Build ISO string for today or tomorrow at that hour
+    const now = new Date();
+    if (dateLabel === 'tomorrow' || (dateLabel === 'unknown' && hour < now.getHours())) {
+      now.setDate(now.getDate() + 1);
+      dateLabel = 'tomorrow';
+    } else {
+      dateLabel = 'today';
+    }
+    now.setHours(hour, 0, 0, 0);
+    requestedDateTime = now.toISOString();
+  }
+
+  // After hours heuristic
+  if (timeWindow === 'night' || timeWindow === 'now') {
+    const currentHour = new Date().getHours();
+    if (timeWindow === 'now' && (currentHour < 8 || currentHour >= 22)) isAfterHours = true;
+    if (timeWindow === 'night') isAfterHours = true;
+  }
+
+  let urgency: ParsedIntent['urgency'] = 'low';
+  if (['emergency', 'fire', 'flood', 'burst'].some(w => t.includes(w))) urgency = 'emergency';
+  else if (['urgent', 'abhi', 'now', 'asap', 'jaldi', 'foran'].some(w => t.includes(w))) urgency = 'high';
+  else if (dateLabel === 'today') urgency = 'medium';
+
+  if (isAfterHours && urgency === 'high') urgency = 'emergency';
+
+  let timePreference = 'flexible';
+  if (requestedDateTime) timePreference = `exact ${new Date(requestedDateTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+  else if (timeWindow !== 'unknown') timePreference = timeWindow;
+  else if (dateLabel !== 'unknown') timePreference = dateLabel;
+
+  return { urgency, timePreference, dateLabel, timeWindow, requestedDateTime, isAfterHours };
 }
 
 function detectLocation(text: string): string | null {
@@ -210,8 +271,7 @@ export function runIntentAgent(text: string, userLocation?: string): IntentAgent
 
   const { service, baseConfidence, skills } = detectService(text);
   const language = detectLanguage(text);
-  const urgency  = detectUrgency(text);
-  const timePref = detectTime(text);
+  const { urgency, timePreference, dateLabel, timeWindow, requestedDateTime, isAfterHours } = detectTimeIntelligence(text);
   const location = detectLocation(text) ?? userLocation ?? null;
   const { sensitivity: budgetSensitivity, max: maxBudget } = detectBudget(text);
   const complexity = detectComplexity(text, service);
@@ -262,12 +322,12 @@ export function runIntentAgent(text: string, userLocation?: string): IntentAgent
   const intent: ParsedIntent = {
     originalText: text,
     detectedLanguage: language,
-    confidence,
+    confidence: Math.round(confidence * 100) / 100,
     confidenceExplanation: explanationStr,
     serviceType: service,
     issueSummary: `${service.replace('_', ' ')} needed — ${urgency} urgency`,
     location,
-    timePreference: timePref,
+    timePreference,
     urgency,
     budgetSensitivity,
     maxBudget,
@@ -275,6 +335,10 @@ export function runIntentAgent(text: string, userLocation?: string): IntentAgent
     missingFields: missing,
     clarificationQuestion,
     parsedItems,
+    dateLabel,
+    timeWindow,
+    requestedDateTime,
+    isAfterHours,
   };
 
   const trace: AgentTrace = {
@@ -283,7 +347,7 @@ export function runIntentAgent(text: string, userLocation?: string): IntentAgent
     agentName: 'IntentAgent',
     action: 'Parse and classify user request',
     inputSummary: `"${text.slice(0, 90)}"`,
-    decision: `${service} | ${language} | urgency: ${urgency} | time: ${timePref}`,
+    decision: `${service} | ${language} | urgency: ${urgency} | time: ${timePreference}`,
     rationale: `Language: ${language} (confidence ${Math.round(confidence * 100)}%). ${explanationStr}. Service matched via keyword analysis. Location: ${location ?? 'not found'}.`,
     confidence,
     dataUsed: ['user_text', 'keyword_dictionary', 'typo_normalizer', 'language_detector'],

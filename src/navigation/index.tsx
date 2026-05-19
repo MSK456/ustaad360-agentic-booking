@@ -17,6 +17,7 @@ import { ProviderDetailScreen } from '../screens/ProviderDetailScreen';
 import { BookingConfirmScreen } from '../screens/BookingConfirmScreen';
 import { FollowUpTimelineScreen } from '../screens/FollowUpTimelineScreen';
 import { AgentTraceScreen } from '../screens/AgentTraceScreen';
+import { MyBookingsScreen } from '../screens/MyBookingsScreen';
 import { DisputeCenterScreen } from '../screens/DisputeCenterScreen';
 import { BaselineCompareScreen } from '../screens/BaselineCompareScreen';
 import { DemoScenariosScreen } from '../screens/DemoScenariosScreen';
@@ -91,6 +92,7 @@ function MainNavigator() {
       <Stack.Screen name="ProviderDetail" component={ProviderDetailScreen} options={{ title: 'Provider Details' }} />
       <Stack.Screen name="BookingConfirm" component={BookingConfirmScreen} options={{ title: 'Confirm Booking' }} />
       <Stack.Screen name="FollowUpTimeline" component={FollowUpTimelineScreen} options={{ title: 'Track Service' }} />
+      <Stack.Screen name="MyBookings" component={MyBookingsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="DisputeCenter" component={DisputeCenterScreen} options={{ title: 'Dispute Center' }} />
     </Stack.Navigator>
   );

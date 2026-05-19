@@ -101,16 +101,16 @@ export async function runOrchestrator(
 
   const selected = ranked[0] ?? null;
 
-  // 4. Pricing
-  const { pricing, trace: t4 } = selected
-    ? runPricingAgent(selected, intent, effectiveBudget)
-    : { pricing: null, trace: { id: 'skip', timestamp: '', agentName: 'PricingAgent', action: 'Skipped', inputSummary: '', decision: 'No provider', rationale: '', confidence: 0, dataUsed: [], nextAction: '', status: 'failed' as const, durationMs: 0 } };
+  // 4. Scheduling
+  const { scheduledAt, slot, isAfterHoursFallback, afterHoursFee, trace: t4 } = selected
+    ? runSchedulingAgent(selected, intent)
+    : { scheduledAt: 'TBD', slot: 'TBD', isAfterHoursFallback: false, afterHoursFee: 0, trace: { id: 'skip', timestamp: '', agentName: 'SchedulingAgent', action: 'Skipped', inputSummary: '', decision: 'No provider', rationale: '', confidence: 0, dataUsed: [], nextAction: '', status: 'failed' as const, durationMs: 0 } };
   traces.push(t4);
 
-  // 5. Scheduling
-  const { scheduledAt, trace: t5 } = selected
-    ? runSchedulingAgent(selected, intent)
-    : { scheduledAt: 'TBD', trace: { id: 'skip', timestamp: '', agentName: 'SchedulingAgent', action: 'Skipped', inputSummary: '', decision: 'No provider', rationale: '', confidence: 0, dataUsed: [], nextAction: '', status: 'failed' as const, durationMs: 0 } };
+  // 5. Pricing
+  const { pricing, trace: t5 } = selected
+    ? runPricingAgent(selected, intent, effectiveBudget, afterHoursFee)
+    : { pricing: null, trace: { id: 'skip', timestamp: '', agentName: 'PricingAgent', action: 'Skipped', inputSummary: '', decision: 'No provider', rationale: '', confidence: 0, dataUsed: [], nextAction: '', status: 'failed' as const, durationMs: 0 } };
   traces.push(t5);
 
   // 6. Booking

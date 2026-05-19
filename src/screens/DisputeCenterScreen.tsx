@@ -6,6 +6,7 @@ import { Colors, Spacing, Radius, Typography } from '../theme';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { useAgentStore } from '../store/agentStore';
+import { useBookingStore } from '../store/bookingStore';
 import { runDisputeAgent, DisputeType } from '../agents/DisputeAgent';
 
 const DISPUTE_TYPES: { id: DisputeType; label: string; icon: string; description: string }[] = [
@@ -21,14 +22,17 @@ export const DisputeCenterScreen: React.FC = () => {
   const [result, setResult]             = useState<ReturnType<typeof runDisputeAgent> | null>(null);
 
   const { result: storeResult } = useAgentStore();
-  const booking  = storeResult?.booking;
-  const provider = storeResult?.selectedProvider?.provider;
-  const price    = storeResult?.pricing?.finalEstimate ?? 1354;
+  const { getActiveBooking } = useBookingStore();
+  
+  const activeStoreBooking = getActiveBooking();
+  const bookingId = storeResult?.booking?.bookingId ?? activeStoreBooking?.id ?? 'B-U360-DEMO';
+  const providerName = storeResult?.selectedProvider?.provider?.name ?? 'Ustaad360 Provider';
+  const price = activeStoreBooking?.quotedPrice ?? storeResult?.pricing?.finalEstimate ?? 1354;
 
   const handleSubmit = () => {
     if (!selectedType) return;
     const res = runDisputeAgent({
-      bookingId:   booking?.bookingId ?? 'B-U360-DEMO',
+      bookingId:   bookingId,
       type:        selectedType,
       description: description || 'User submitted dispute',
       finalPrice:  price,
@@ -49,27 +53,21 @@ export const DisputeCenterScreen: React.FC = () => {
       </View>
 
       {/* Booking context */}
-      {booking && (
-        <View style={styles.contextCard}>
-          <Text style={styles.sectionLabel}>BOOKING CONTEXT</Text>
-          <View style={styles.contextRow}>
-            <Text style={styles.contextLabel}>Booking ID</Text>
-            <Text style={styles.contextVal}>{booking.bookingId}</Text>
-          </View>
-          <View style={styles.contextRow}>
-            <Text style={styles.contextLabel}>Provider</Text>
-            <Text style={styles.contextVal}>{provider?.name ?? 'Unknown'}</Text>
-          </View>
-          <View style={styles.contextRow}>
-            <Text style={styles.contextLabel}>Amount Paid</Text>
-            <Text style={styles.contextVal}>₨{price.toLocaleString()}</Text>
-          </View>
-          <View style={styles.contextRow}>
-            <Text style={styles.contextLabel}>Scheduled</Text>
-            <Text style={styles.contextVal}>{booking.scheduledAt}</Text>
-          </View>
+      <View style={styles.contextCard}>
+        <Text style={styles.sectionLabel}>BOOKING CONTEXT</Text>
+        <View style={styles.contextRow}>
+          <Text style={styles.contextLabel}>Booking ID</Text>
+          <Text style={styles.contextVal}>{bookingId}</Text>
         </View>
-      )}
+        <View style={styles.contextRow}>
+          <Text style={styles.contextLabel}>Provider</Text>
+          <Text style={styles.contextVal}>{providerName}</Text>
+        </View>
+        <View style={styles.contextRow}>
+          <Text style={styles.contextLabel}>Amount Paid</Text>
+          <Text style={styles.contextVal}>₨{price.toLocaleString()}</Text>
+        </View>
+      </View>
 
       {/* Result view */}
       {result ? (

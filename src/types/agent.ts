@@ -33,6 +33,10 @@ export interface ParsedIntent {
   missingFields: string[];
   clarificationQuestion: string | null;
   parsedItems?: ParsedItem[];
+  requestedDateTime?: string; // ISO string if exact
+  dateLabel: 'today' | 'tomorrow' | 'unknown';
+  timeWindow: 'now' | 'morning' | 'afternoon' | 'evening' | 'night' | 'exact' | 'unknown';
+  isAfterHours: boolean;
 }
 
 export type ProviderBadge =
@@ -83,6 +87,7 @@ export interface PricingResult {
   providerPremium: number;
   demandMultiplier: number;
   loyaltyDiscount: number;
+  afterHoursFee?: number;
   
   // Daily essentials fields
   itemSubtotal?: number;

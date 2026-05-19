@@ -11,6 +11,7 @@ export interface PricingInput {
   isReturningUser?: boolean;
   userBudget?: number;
   items?: ParsedItem[];
+  afterHoursFee?: number;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────
@@ -67,7 +68,7 @@ export function calculatePrice(input: PricingInput): PricingResult {
     packagingFee = 50;
 
     let subtotal = (itemSubtotal + deliveryFee + packagingFee) * urgencyMultiplier * demandMultiplier;
-    finalEstimate = Math.round(subtotal - loyaltyDiscount);
+    finalEstimate = Math.round(subtotal - loyaltyDiscount + (input.afterHoursFee || 0));
 
     explanation = 
       `Items ₨${itemSubtotal}` +
@@ -76,6 +77,7 @@ export function calculatePrice(input: PricingInput): PricingResult {
       ` × urgency ${urgencyMultiplier}` +
       (input.isHighDemand ? ' × demand 1.15' : '') +
       (loyaltyDiscount ? ` − loyalty ₨${loyaltyDiscount}` : '') +
+      (input.afterHoursFee ? ` + emergency fee ₨${input.afterHoursFee}` : '') +
       ` = ₨${finalEstimate}`;
   } else {
     let subtotal =
@@ -83,7 +85,7 @@ export function calculatePrice(input: PricingInput): PricingResult {
       * urgencyMultiplier
       * demandMultiplier;
       
-    finalEstimate = Math.round(subtotal - loyaltyDiscount);
+    finalEstimate = Math.round(subtotal - loyaltyDiscount + (input.afterHoursFee || 0));
 
     explanation =
       `Base ₨${input.baseRate}` +
@@ -93,6 +95,7 @@ export function calculatePrice(input: PricingInput): PricingResult {
       ` × urgency ${urgencyMultiplier}` +
       (input.isHighDemand ? ' × demand 1.15' : '') +
       (loyaltyDiscount ? ` − loyalty ₨${loyaltyDiscount}` : '') +
+      (input.afterHoursFee ? ` + emergency fee ₨${input.afterHoursFee}` : '') +
       ` = ₨${finalEstimate}`;
   }
 
@@ -149,6 +152,7 @@ export function calculatePrice(input: PricingInput): PricingResult {
     deliveryFee,
     packagingFee,
     items: input.items,
+    afterHoursFee: input.afterHoursFee,
 
     finalEstimate,
     fairnessNoteForUser: isDailyEssential ? 'Prices are verified against Islamabad Mandi rates.' : 'Final quote protected by Ustaad360 Fair Price Guarantee.',

@@ -7,6 +7,7 @@ export type RootStackParamList = {
   ProviderDetail: { providerId: string };
   BookingConfirm: { providerId: string };
   FollowUpTimeline: { bookingId: string };
+  MyBookings: undefined;
   DisputeCenter: undefined;
 };
 

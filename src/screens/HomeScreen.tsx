@@ -13,6 +13,7 @@ import { Colors, Spacing, Radius, Typography } from '../theme';
 import { Badge } from '../components/Badge';
 import { useAgentStore } from '../store/agentStore';
 import { useAuthStore } from '../store/authStore';
+import { useBookingStore } from '../store/bookingStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -48,6 +49,8 @@ export const HomeScreen: React.FC = () => {
   const [query, setQuery] = useState('');
   const { run, isLoading } = useAgentStore();
   const { user, isGuest, logout } = useAuthStore();
+  const { getActiveBooking } = useBookingStore();
+  const activeBooking = getActiveBooking();
 
   const handleSearch = async (text: string) => {
     const q = text.trim();
@@ -75,9 +78,14 @@ export const HomeScreen: React.FC = () => {
             <Ionicons name="construct" size={24} color={Colors.primary} />
             <Text style={styles.appName}>Ustaad<Text style={styles.appVersion}>360</Text></Text>
           </View>
-          <TouchableOpacity onPress={handleLogout} style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>{initial}</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+            <TouchableOpacity onPress={() => navigation.navigate('MyBookings')} style={styles.myBookingsBtn}>
+              <Ionicons name="receipt-outline" size={20} color={Colors.textPrimary} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleLogout} style={styles.avatarCircle}>
+              <Text style={styles.avatarText}>{initial}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Header */}
@@ -127,6 +135,28 @@ export const HomeScreen: React.FC = () => {
             </View>
           </View>
         </KeyboardAvoidingView>
+
+        {/* Active Booking Card */}
+        {activeBooking && (
+          <TouchableOpacity 
+            style={styles.activeBookingCard} 
+            onPress={() => navigation.navigate('FollowUpTimeline', { bookingId: activeBooking.id })}
+          >
+            <View style={styles.activeBookingHeader}>
+              <View style={styles.activeBookingTitleRow}>
+                <Ionicons name="construct-outline" size={18} color={Colors.primary} />
+                <Text style={styles.activeBookingTitle}>Active Booking</Text>
+              </View>
+              <Badge label={activeBooking.status.replace('_', ' ').toUpperCase()} variant="primary" />
+            </View>
+            <Text style={styles.activeBookingService}>{activeBooking.serviceCategory.replace('_', ' ').toUpperCase()}</Text>
+            <Text style={styles.activeBookingDesc} numberOfLines={1}>{activeBooking.description}</Text>
+            <View style={styles.activeBookingFooter}>
+              <Text style={styles.activeBookingTime}>{new Date(activeBooking.scheduledAt).toLocaleString()}</Text>
+              <Ionicons name="arrow-forward" size={16} color={Colors.textMuted} />
+            </View>
+          </TouchableOpacity>
+        )}
 
         {/* Quick Categories */}
         <View style={styles.categoriesContainer}>
@@ -268,4 +298,30 @@ const styles = StyleSheet.create({
   whyText: { ...Typography.bodySm, color: Colors.textSecondary, flex: 1 },
   powered: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: Spacing.sm },
   poweredText: { ...Typography.caption, color: Colors.textMuted },
+  myBookingsBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.cardElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  activeBookingCard: {
+    marginHorizontal: Spacing.md,
+    marginBottom: Spacing.lg,
+    backgroundColor: Colors.cardElevated,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  activeBookingHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm },
+  activeBookingTitleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  activeBookingTitle: { ...Typography.bodySm, fontWeight: 'bold', color: Colors.primary },
+  activeBookingService: { ...Typography.body, fontWeight: 'bold', color: Colors.textPrimary },
+  activeBookingDesc: { ...Typography.bodySm, color: Colors.textSecondary, marginTop: 4 },
+  activeBookingFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: Spacing.md, paddingTop: Spacing.sm, borderTopWidth: 1, borderTopColor: Colors.border },
+  activeBookingTime: { ...Typography.caption, color: Colors.textMuted },
 });

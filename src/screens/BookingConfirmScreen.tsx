@@ -10,6 +10,7 @@ import { Button } from '../components/Button';
 import { Badge } from '../components/Badge';
 import { FairPriceMeter } from '../components/FairPriceMeter';
 import { useAgentStore } from '../store/agentStore';
+import { useBookingStore } from '../store/bookingStore';
 import { runBookingAgent } from '../agents/BookingAgent';
 import { runFollowUpAgent } from '../agents/FollowUpAgent';
 import { runSchedulingAgent } from '../agents/SchedulingAgent';
@@ -52,13 +53,37 @@ export const BookingConfirmScreen: React.FC = () => {
   const slot        = bookingData?.scheduledAt ?? 'Tomorrow at 09:00 AM';
   const address     = bookingData?.address ?? 'House 42, Gulberg III, Lahore';
 
+  const { addBooking } = useBookingStore();
+
   const handleConfirm = () => {
     // If we don't have a booking for this provider, generate one now
-    if (!bookingData && rankedProvider && pricing) {
-      const { scheduledAt } = runSchedulingAgent(rankedProvider, result!.intent);
-      const { booking } = runBookingAgent(rankedProvider, pricing, scheduledAt);
+    let finalBooking = bookingData;
+    if (!finalBooking && rankedProvider && pricing) {
+      const scheduling = runSchedulingAgent(rankedProvider, result!.intent);
+      const { booking } = runBookingAgent(rankedProvider, pricing, scheduling.scheduledAt);
+      finalBooking = booking;
       setLocalBooking(booking);
     }
+    
+    if (finalBooking) {
+      addBooking({
+        id: finalBooking.bookingId,
+        userId: 'u1', // mocked for now
+        providerId: provider!.id,
+        serviceCategory: provider!.serviceCategories[0],
+        description: result?.intent.issueSummary ?? '',
+        status: 'pending',
+        scheduledAt: slot,
+        address,
+        quotedPrice: price,
+        userBudget: result?.intent?.maxBudget ?? 0,
+        finalPrice: price,
+        paymentMethod: 'cash',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
     setConfirmed(true);
     setTimeout(() => navigation.navigate('FollowUpTimeline', { bookingId }), 1400);
   };
