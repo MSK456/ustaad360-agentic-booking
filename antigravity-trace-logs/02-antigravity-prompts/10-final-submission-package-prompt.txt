@@ -1,0 +1,1 @@
+Objective: Generate structured developer log folder with comprehensive plans, prompts, debugging summaries for final review.

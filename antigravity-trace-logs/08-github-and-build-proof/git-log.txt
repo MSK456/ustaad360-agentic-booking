@@ -1,0 +1,19 @@
+fe574de (HEAD -> main, tag: v1.2.0-commercial-booking-persistence, origin/main) feat: add commercial auth bookings and trace persistence
+2a64975 (tag: v1.1.0-commercial-lifecycle) feat: add time intelligence booking history and lifecycle progression
+dfd42cf (tag: v1.0.0-final-pricing-realism) fix: add realistic category pricing and itemized essentials
+fb5d2c4 (tag: v0.9.0-islamabad-categories-polish) feat: add Islamabad-first categories and final judge-ready polish
+922165e (tag: v0.8.0-unique-product-polish) feat: add unique UX polish and final product intelligence
+717d0d7 feat: v0.6.0 branding, auth flow, and dynamic agent polish
+867566a fix: repair Android splash resources for EAS build
+3e70c33 build: add eas.json for Expo SDK 51 Android APK build
+1661d98 (tag: v0.5.0-final-qa-docs-polish) docs: v0.5.0 - final QA, docs, and submission package
+677dd5c (tag: v0.4.1-end-to-end-booking-flow, tag: v0.4.0-end-to-end-booking) feat: v0.4.1 - complete end-to-end booking flow (all TS errors fixed)
+c99965e fix: ProviderDetailScreen crash - TimeSlot objects used as React key/child
+a805f93 (tag: v0.4.0-end-to-end-demo-flow) feat: v0.4.0-end-to-end-demo-flow - complete agentic lifecycle UI
+2327cbb (tag: v0.3.0-agent-pipeline) feat: implement full 10-agent pipeline v0.3.0-agent-pipeline
+9d43af3 (tag: v0.2.1-runtime-fix) fix: resolve Ionicons font loader crash (SDK 51 compat)
+79e2624 fix: add missing baseline comparison screen
+ded216d docs: add Expo Go SDK 51 troubleshooting
+a2ad96c (tag: v0.2.0-skeleton) feat: complete app skeleton - 10 screens, nav, theme, components (v0.2.0-skeleton)
+965f5cf (tag: v0.1.0-planning) feat: add planning docs and professional README (v0.1.0-planning)
+d19399e chore: initialize repository

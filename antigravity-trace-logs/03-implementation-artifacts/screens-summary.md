@@ -1,0 +1,12 @@
+# Screens Inventory
+- `WelcomeScreen`/`LoginScreen`/`SignupScreen`: Handle auth profiles and guest state.
+- `HomeScreen`: Includes chat search, stats, quick category chips, active booking alerts.
+- `IntentReviewScreen`: Prompts user to confirm or edit NLU parsed properties.
+- `ProviderListScreen`: Displays matching pool, badges, 'Why not closest?' explanation card.
+- `ProviderDetailScreen`: Explains matching factors, shows reviews, dynamic price breakdowns, budget match warning.
+- `BookingConfirmScreen`: Interactive payment options, final receipt generation, booking overlaps.
+- `FollowUpTimelineScreen`: Dynamic progress simulation (pending -> completed).
+- `AgentTraceScreen`: Search logs containing precise chain of thought execution details.
+- `BaselineCompareScreen`: Visual representation comparing 10-factor score to standard sorting.
+- `DemoScenariosScreen`: Launches one-tap demo tests.
+- `DisputeCenterScreen`: Direct arbitration panel for refunds or poor completion.

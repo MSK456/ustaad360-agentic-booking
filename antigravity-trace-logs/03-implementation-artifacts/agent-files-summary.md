@@ -1,0 +1,11 @@
+# Agent Files Technical Summary
+- `IntentAgent.ts`: Normalizes Urdu/Roman Urdu, extracts type, budget, sector, urgency.
+- `DiscoveryAgent.ts`: Selects relevant providers matching parsed service categories.
+- `RankingAgent.ts`: Scores matching pool through the 10-factor weighted pipeline.
+- `PricingAgent.ts`: Calculates dynamic cost (complexity, travel, demand surcharges).
+- `SchedulingAgent.ts`: Ensures appointments fit within active service windows (9am-10pm fallback or emergency 24/7).
+- `BookingAgent.ts`: Instantiates booking records, outputs unique tracking codes.
+- `NotificationAgent.ts`: Simulates transactional SMS/WhatsApp communications.
+- `FollowUpAgent.ts`: Tracks timeline steps.
+- `DisputeAgent.ts`: Provides local structured mediation matching refund queries.
+- `ReputationUpdateAgent.ts`: Updates providers' reliability and completion scores.
